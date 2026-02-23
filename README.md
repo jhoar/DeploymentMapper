@@ -86,6 +86,22 @@ This command generates:
 
 You can render it with any PlantUML-compatible tool.
 
+### Generate a UML diagram by reading the example JSON
+
+From the repository root:
+
+```bash
+python -m deployment_mapper.domain.json_uml_demo
+```
+
+This command reads:
+
+- `examples/demo_input_dataset.json`
+
+And writes:
+
+- `examples/demo_input_dataset_diagram.puml`
+
 ### Validate your own schema in code
 
 ```python

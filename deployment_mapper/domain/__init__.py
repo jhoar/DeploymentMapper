@@ -28,6 +28,12 @@ def generate_demo_plantuml() -> str:
     return generate_plantuml(build_demo_schema(), title=f"{DEMO_DATASET_NAME} deployment")
 
 
+def load_schema_from_json_file(path: str) -> DeploymentSchema:
+    from .json_uml_demo import load_schema_from_json_file as _load_schema_from_json_file
+
+    return _load_schema_from_json_file(path)
+
+
 __all__ = [
     "Subnet",
     "HardwareNode",
@@ -44,4 +50,5 @@ __all__ = [
     "DEMO_DATASET_NAME",
     "build_demo_schema",
     "generate_demo_plantuml",
+    "load_schema_from_json_file",
 ]
