@@ -1,3 +1,4 @@
+from .json_loader import parse_schema_payload
 from .models import (
     DeploymentInstance,
     DeploymentSchema,
@@ -51,4 +52,5 @@ __all__ = [
     "build_demo_schema",
     "generate_demo_plantuml",
     "load_schema_from_json_file",
+    "parse_schema_payload",
 ]
