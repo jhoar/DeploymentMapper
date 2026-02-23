@@ -244,6 +244,47 @@ If you need persistence, the following relational mapping is a recommended start
 - Programmatic demo builder: `deployment_mapper/domain/demo_dataset.py`
 - JSON demo payload: `examples/demo_input_dataset.json`
 
+
+## API security configuration
+
+The FastAPI endpoints support role-based authorization with three roles:
+
+- `reader`
+- `editor`
+- `admin`
+
+Role capabilities:
+
+- `POST /schemas/validate`: `editor`+
+- `POST /diagrams/plantuml` and `POST /diagrams/render`: `editor`+
+- `GET /diagrams/artifacts` and `GET /diagrams/artifacts/{request_id}/{artifact_name}`: `reader`+
+- `GET /diagrams/admin/config` and `POST /diagrams/admin/cleanup`: `admin`
+
+Configure authentication via environment variables:
+
+- `DEPLOYMENT_MAPPER_AUTH_MODE`
+  - `none` (default; auth disabled)
+  - `api_key`
+  - `jwt`
+  - `api_key_or_jwt`
+- `DEPLOYMENT_MAPPER_API_KEYS_READER`
+  - Comma-separated API keys mapped to `reader`.
+- `DEPLOYMENT_MAPPER_API_KEYS_EDITOR`
+  - Comma-separated API keys mapped to `editor`.
+- `DEPLOYMENT_MAPPER_API_KEYS_ADMIN`
+  - Comma-separated API keys mapped to `admin`.
+- `DEPLOYMENT_MAPPER_JWT_SECRET`
+  - Required for `jwt` or `api_key_or_jwt` when bearer tokens are used.
+- `DEPLOYMENT_MAPPER_JWT_ALGORITHM`
+  - Optional; default `HS256`.
+- `DEPLOYMENT_MAPPER_JWT_AUDIENCE`
+  - Optional JWT audience.
+
+Authentication inputs:
+
+- API key: `X-API-Key: <key>`
+- Bearer token: `Authorization: Bearer <jwt>`
+
 ## License
 
 MIT (see `LICENSE`).
