@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from .models import (
     DeploymentInstance,
     DeploymentSchema,
@@ -15,8 +18,8 @@ from .models import (
 )
 
 
-def parse_schema_payload(payload: dict[str, object]) -> DeploymentSchema:
-    """Parse JSON-like payload data into a validated DeploymentSchema."""
+def load_schema_from_dict(payload: dict[str, object]) -> DeploymentSchema:
+    """Load a validated DeploymentSchema from a JSON-like dictionary payload."""
 
     schema = DeploymentSchema(
         subnets=[Subnet(**item) for item in payload.get("subnets", [])],
@@ -52,3 +55,13 @@ def parse_schema_payload(payload: dict[str, object]) -> DeploymentSchema:
     schema.validate()
     return schema
 
+
+def load_schema_from_json_file(path: str | Path) -> DeploymentSchema:
+    """Read a JSON file and load it into a validated DeploymentSchema."""
+
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    return load_schema_from_dict(payload)
+
+
+# Backward compatible alias.
+parse_schema_payload = load_schema_from_dict

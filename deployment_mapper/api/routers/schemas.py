@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from deployment_mapper.domain.json_loader import parse_schema_payload
+from deployment_mapper.domain.json_loader import load_schema_from_dict
 from deployment_mapper.domain.models import ValidationError
 
 router = APIRouter(prefix="/schemas", tags=["schemas"])
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/schemas", tags=["schemas"])
 def validate_schema(payload: dict[str, object]) -> dict[str, object]:
     """Validate deployment schema JSON payloads."""
     try:
-        schema = parse_schema_payload(payload)
+        schema = load_schema_from_dict(payload)
     except (ValidationError, KeyError, TypeError, ValueError) as exc:
         return {"valid": False, "errors": [str(exc)]}
 
