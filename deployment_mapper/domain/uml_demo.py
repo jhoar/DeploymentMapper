@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
+
+from deployment_mapper.artifacts import LocalArtifactStore
 
 from .demo_dataset import DEMO_DATASET_NAME, build_demo_schema
 from .models import DeploymentSchema, DeploymentTargetKind
@@ -104,11 +105,15 @@ def main() -> None:
     schema = build_demo_schema()
     content = generate_plantuml(schema, title=f"{DEMO_DATASET_NAME} deployment")
 
-    output = Path("examples/demo_deployment_diagram.puml")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(content, encoding="utf-8")
+    artifact_store = LocalArtifactStore(base_dir="examples")
+    stored_artifact = artifact_store.write_text(
+        request_id="demo_deployment_diagram",
+        schema_payload={"schema_id": DEMO_DATASET_NAME, "schema_version": "1"},
+        content=content,
+        content_type="text/plantuml",
+    )
 
-    print(f"Wrote PlantUML diagram: {output}")
+    print(f"Wrote PlantUML diagram: {stored_artifact.path}")
 
 
 if __name__ == "__main__":
