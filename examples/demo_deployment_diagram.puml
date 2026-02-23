@@ -1,0 +1,30 @@
+@startuml
+title baseline-demo deployment
+skinparam componentStyle rectangle
+
+node "Subnet: production\n10.0.0.0/24" as subnet_subnet_prod {
+  node "HW: bm-prod-01\n10.0.0.10\n[PHYSICAL]" as hw_node_baremetal_01
+  node "HW: k8s-worker-01\n10.0.0.11\n[K8S_NODE]" as hw_node_k8s_worker_01
+  node "VM: vm-app-01\n10.0.0.21" as vm_vm_app_01
+  cloud "K8S Cluster: prod-cluster" as k8s_cluster_prod_01
+}
+
+node "Subnet: management\n10.0.1.0/24" as subnet_subnet_mgmt {
+  database "Storage: nas-01\n10.0.1.30" as st_storage_nas_01
+  node "Switch: sw-core-01\n10.0.1.40" as sw_switch_core_01
+}
+
+hw_node_baremetal_01 --> vm_vm_app_01 : hosts
+k8s_cluster_prod_01 --> hw_node_k8s_worker_01 : worker
+
+component "System: payments-api\nsys-payments" as sys_sys_payments
+component "System: observability-stack\nsys-observability" as sys_sys_observability
+artifact "Deployment: deploy-payments-vm\ncomponent=payments-service" as dep_deploy_payments_vm
+artifact "Deployment: deploy-observability-ns\ncomponent=prometheus" as dep_deploy_observability_ns
+
+sys_sys_payments --> dep_deploy_payments_vm : deploys (payments-service)
+dep_deploy_payments_vm --> vm_vm_app_01 : VM
+sys_sys_observability --> dep_deploy_observability_ns : deploys (prometheus)
+dep_deploy_observability_ns --> k8s_cluster_prod_01 : NAMESPACE/monitoring
+
+@enduml
