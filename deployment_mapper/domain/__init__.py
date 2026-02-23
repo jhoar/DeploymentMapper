@@ -1,3 +1,4 @@
+from .demo_dataset import DEMO_DATASET_NAME, build_demo_schema
 from .models import (
     DeploymentInstance,
     DeploymentSchema,
@@ -26,4 +27,6 @@ __all__ = [
     "NodeKind",
     "DeploymentTargetKind",
     "ValidationError",
+    "DEMO_DATASET_NAME",
+    "build_demo_schema",
 ]
