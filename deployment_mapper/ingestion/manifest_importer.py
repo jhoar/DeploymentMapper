@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from deployment_mapper.domain.models import (
+    ValidationError,
     DeploymentInstance,
     DeploymentSchema,
     DeploymentTargetKind,
@@ -18,6 +19,7 @@ from deployment_mapper.domain.models import (
     VirtualMachine,
 )
 from deployment_mapper.ingestion.diagnostics import DiagnosticLevel, ImportDiagnostics
+from deployment_mapper.validation import validate_schema_for_import
 
 
 def import_manifest_file(path: str | Path) -> tuple[DeploymentSchema, ImportDiagnostics]:
@@ -176,7 +178,14 @@ def import_manifest(raw: str | bytes | dict[str, Any], *, source_name: str = "ma
 
     vm_ids = {vm.id for vm in schema.virtual_machines}
     for item in payload.get("deployment_instances", []):
-        target_kind = DeploymentTargetKind(item["target_kind"])
+        try:
+            target_kind = DeploymentTargetKind(item["target_kind"])
+        except ValueError as exc:
+            raise ValidationError(
+                f"deployment_instance '{item.get('id', '<missing>')}' uses unsupported target_kind '{item.get('target_kind')}'. "
+                f"Supported target kinds: {', '.join(kind.value for kind in DeploymentTargetKind)}. "
+                "Suggested fix: update target_kind to a supported value."
+            ) from exc
         missing_field: str | None = None
 
         if item["system_id"] not in system_ids:
@@ -215,6 +224,7 @@ def import_manifest(raw: str | bytes | dict[str, Any], *, source_name: str = "ma
             )
         )
 
+    validate_schema_for_import(schema)
     return schema, diagnostics
 
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from deployment_mapper.domain.models import DeploymentSchema
+from deployment_mapper.validation import validate_schema_for_import
 
 
 @dataclass(slots=True, frozen=True)
@@ -376,6 +377,7 @@ class DeploymentRepository:
 
     def upsert_schema(self, schema: DeploymentSchema) -> None:
         """Insert or update canonical deployment records idempotently."""
+        validate_schema_for_import(schema)
         schema.validate()
         with self.connection:
             for subnet in schema.subnets:

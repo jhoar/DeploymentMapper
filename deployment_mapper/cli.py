@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from deployment_mapper.diagram.plantuml_renderer import render_system_topology
+from deployment_mapper.domain.models import ValidationError
 from deployment_mapper.persistence.repository import DeploymentRepository
+from deployment_mapper.validation import validate_topology_for_diagram
 
 
 def _build_system_summary(topology: dict[str, Any]) -> str:
@@ -102,6 +104,12 @@ def main(argv: list[str] | None = None) -> int:
         topology = repository.get_system_topology(args.system_id)
         if not topology:
             print(f"System '{args.system_id}' not found")
+            return 1
+
+        try:
+            validate_topology_for_diagram(args.system_id, topology)
+        except ValidationError as exc:
+            print(f"Validation failed: {exc}")
             return 1
 
         if args.format == "puml":
