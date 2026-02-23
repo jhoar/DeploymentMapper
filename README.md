@@ -283,6 +283,60 @@ Authentication inputs:
 - API key: `X-API-Key: <key>`
 - Bearer token: `Authorization: Bearer <jwt>`
 
+
+## Observability
+
+### Structured JSON logging and request correlation
+
+The API emits one JSON log entry per request via `deployment_mapper.api` logger with:
+
+- `event` (always `http_request`)
+- `request_id`
+- `method`
+- `path`
+- `status_code`
+- `duration_ms`
+- `client`
+
+Request IDs are accepted from `X-Request-ID` if supplied, otherwise generated server-side.
+All responses include the `X-Request-ID` header so clients can correlate responses, logs, and error reports.
+
+### Prometheus metrics
+
+`GET /metrics` exposes Prometheus-formatted metrics including request count, latency, and error totals:
+
+- `deployment_mapper_http_requests_total{method,path,status_code}`
+- `deployment_mapper_http_request_duration_seconds{method,path}`
+- `deployment_mapper_http_request_errors_total{method,path,status_code}`
+
+## Error response schema
+
+Errors are returned in a consistent JSON envelope:
+
+```json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Input validation failed.",
+  "details": ["..."],
+  "request_id": "..."
+}
+```
+
+Fields:
+
+- `code`: stable machine-readable error type (`VALIDATION_ERROR`, `REQUEST_VALIDATION_ERROR`, `AUTH_ERROR`, `HTTP_ERROR`, `INTERNAL_ERROR`).
+- `message`: human-readable summary.
+- `details`: validation or failure details (`array` or object).
+- `request_id`: correlation identifier matching `X-Request-ID` and logs.
+
+Exception mapping:
+
+- Domain `ValidationError` -> HTTP 422 `VALIDATION_ERROR`
+- Request model/shape validation errors -> HTTP 422 `REQUEST_VALIDATION_ERROR`
+- Auth/role errors -> HTTP 401/403 `AUTH_ERROR`
+- Other uncaught exceptions -> HTTP 500 `INTERNAL_ERROR`
+
+
 ## License
 
 MIT (see `LICENSE`).
