@@ -81,6 +81,45 @@ class LocalArtifactStore:
         self._cleanup()
         return StoredArtifact(path=artifact_path, metadata_path=metadata_path, metadata=metadata)
 
+    def list_artifacts(self, request_id: str | None = None) -> list[StoredArtifact]:
+        if request_id:
+            candidates = [
+                path
+                for path in (self.base_dir / request_id).glob("*")
+                if path.is_file() and not path.name.endswith(".metadata.json")
+            ]
+        else:
+            candidates = self._list_artifacts_by_mtime()
+
+        artifacts: list[StoredArtifact] = []
+        for artifact_path in sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True):
+            metadata_path = artifact_path.with_name(f"{artifact_path.stem}.metadata.json")
+            if not metadata_path.exists():
+                continue
+            metadata_payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+            metadata = ArtifactMetadata(**metadata_payload)
+            artifacts.append(StoredArtifact(path=artifact_path, metadata_path=metadata_path, metadata=metadata))
+        return artifacts
+
+    def read_text(self, request_id: str, artifact_name: str) -> StoredArtifact:
+        artifact_path = (self.base_dir / request_id / artifact_name).resolve()
+        if self.base_dir.resolve() not in artifact_path.parents or not artifact_path.exists() or artifact_path.is_dir():
+            raise FileNotFoundError(artifact_name)
+
+        metadata_path = artifact_path.with_name(f"{artifact_path.stem}.metadata.json")
+        if not metadata_path.exists():
+            raise FileNotFoundError(f"Metadata not found for {artifact_name}")
+
+        metadata_payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+        metadata = ArtifactMetadata(**metadata_payload)
+        return StoredArtifact(path=artifact_path, metadata_path=metadata_path, metadata=metadata)
+
+    def cleanup(self) -> int:
+        before = len(self._list_artifacts_by_mtime())
+        self._cleanup()
+        after = len(self._list_artifacts_by_mtime())
+        return max(before - after, 0)
+
     def _schema_hash(self, schema_payload: dict[str, object]) -> str:
         canonical_json = json.dumps(schema_payload, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
