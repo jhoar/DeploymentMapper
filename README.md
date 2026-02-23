@@ -7,31 +7,29 @@ It includes strict validation for relationships, required fields, and uniqueness
 
 - **Operating system**: Linux, macOS, or Windows (WSL recommended on Windows).
 - **Python**: 3.11+ (3.12 tested in this repository).
-- **Dependencies**: standard library only (no third-party runtime dependencies currently required).
+- **Dependencies**: `fastapi`, `uvicorn`, and other packages listed in `pyproject.toml`.
 
 ## Installation
-
-Because this repository currently ships source files directly (without packaging metadata like `pyproject.toml`), use one of the following approaches.
-
-### Option A: Clone and run with `PYTHONPATH` (recommended for now)
 
 ```bash
 git clone <your-repo-url> DeploymentMapper
 cd DeploymentMapper
-export PYTHONPATH="$PWD"
+pip install -e .
 ```
 
-Windows PowerShell:
+## Run the API locally
 
-```powershell
-git clone <your-repo-url> DeploymentMapper
-cd DeploymentMapper
-$env:PYTHONPATH = (Get-Location).Path
+```bash
+uvicorn deployment_mapper.api.main:app --reload
 ```
 
-### Option B: Vendor the package into another project
+You can also use the packaged server entrypoint:
 
-Copy the `deployment_mapper/` directory into your codebase and import from `deployment_mapper.domain`.
+```bash
+deployment-mapper-server --reload
+```
+
+Copy `.env.example` to `.env` and adjust values for your environment.
 
 ## Quick start
 

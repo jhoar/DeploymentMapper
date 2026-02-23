@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,7 +12,7 @@ from deployment_mapper.domain.models import ValidationError
 from deployment_mapper.domain.uml_demo import generate_plantuml
 
 router = APIRouter(prefix="/diagrams", tags=["diagrams"])
-artifact_store = LocalArtifactStore()
+artifact_store = LocalArtifactStore(base_dir=os.getenv("DEPLOYMENT_MAPPER_ARTIFACT_PATH", "deployment_mapper/artifacts"))
 
 
 def _request_id(payload: dict[str, object]) -> str:
