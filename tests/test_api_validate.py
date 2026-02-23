@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import unittest
 from pathlib import Path
 
 
-@unittest.skipUnless(__import__("importlib").util.find_spec("fastapi") is not None, "fastapi not installed")
+_HAS_FASTAPI = importlib.util.find_spec("fastapi") is not None
+_HAS_HTTPX = importlib.util.find_spec("httpx") is not None
+
+
+@unittest.skipUnless(_HAS_FASTAPI and _HAS_HTTPX, "fastapi/httpx not installed")
 class ApiValidateEndpointTests(unittest.TestCase):
     def setUp(self) -> None:
         from deployment_mapper.api.main import app
