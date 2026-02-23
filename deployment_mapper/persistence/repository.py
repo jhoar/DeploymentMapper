@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from deployment_mapper.domain.models import DeploymentSchema
+
 
 @dataclass(slots=True, frozen=True)
 class NodeRecord:
@@ -179,6 +181,132 @@ class DeploymentRepository:
                 for node in self.list_nodes_hosting_system(system_id)
             ],
         }
+
+    def upsert_schema(self, schema: DeploymentSchema) -> None:
+        """Insert or update canonical deployment records idempotently."""
+        schema.validate()
+        with self.connection:
+            for subnet in schema.subnets:
+                self.connection.execute(
+                    """
+                    INSERT INTO subnets (id, cidr, name)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      cidr = excluded.cidr,
+                      name = excluded.name
+                    """,
+                    (subnet.id, subnet.cidr, subnet.name),
+                )
+
+            for node in schema.hardware_nodes:
+                self.connection.execute(
+                    """
+                    INSERT INTO hardware_nodes (id, hostname, ip_address, subnet_id, kind)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      hostname = excluded.hostname,
+                      ip_address = excluded.ip_address,
+                      subnet_id = excluded.subnet_id,
+                      kind = excluded.kind
+                    """,
+                    (node.id, node.hostname, node.ip_address, node.subnet_id, node.kind.value),
+                )
+
+            for vm in schema.virtual_machines:
+                self.connection.execute(
+                    """
+                    INSERT INTO virtual_machines (id, hostname, ip_address, subnet_id, host_node_id)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      hostname = excluded.hostname,
+                      ip_address = excluded.ip_address,
+                      subnet_id = excluded.subnet_id,
+                      host_node_id = excluded.host_node_id
+                    """,
+                    (vm.id, vm.hostname, vm.ip_address, vm.subnet_id, vm.host_node_id),
+                )
+
+            for storage in schema.storage_servers:
+                self.connection.execute(
+                    """
+                    INSERT INTO storage_servers (id, hostname, ip_address, subnet_id)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      hostname = excluded.hostname,
+                      ip_address = excluded.ip_address,
+                      subnet_id = excluded.subnet_id
+                    """,
+                    (storage.id, storage.hostname, storage.ip_address, storage.subnet_id),
+                )
+
+            for switch in schema.network_switches:
+                self.connection.execute(
+                    """
+                    INSERT INTO network_switches (id, hostname, management_ip, subnet_id)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      hostname = excluded.hostname,
+                      management_ip = excluded.management_ip,
+                      subnet_id = excluded.subnet_id
+                    """,
+                    (switch.id, switch.hostname, switch.management_ip, switch.subnet_id),
+                )
+
+            for system in schema.software_systems:
+                self.connection.execute(
+                    """
+                    INSERT INTO software_systems (id, name, version)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      name = excluded.name,
+                      version = excluded.version
+                    """,
+                    (system.id, system.name, system.version),
+                )
+
+            for cluster in schema.kubernetes_clusters:
+                self.connection.execute(
+                    """
+                    INSERT INTO kubernetes_clusters (id, name, subnet_id)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      name = excluded.name,
+                      subnet_id = excluded.subnet_id
+                    """,
+                    (cluster.id, cluster.name, cluster.subnet_id),
+                )
+
+                self.connection.execute("DELETE FROM cluster_nodes WHERE cluster_id = ?", (cluster.id,))
+                for node_id in cluster.node_ids:
+                    self.connection.execute(
+                        "INSERT INTO cluster_nodes (cluster_id, node_id) VALUES (?, ?)",
+                        (cluster.id, node_id),
+                    )
+
+            for deployment in schema.deployment_instances:
+                self.connection.execute(
+                    """
+                    INSERT INTO deployment_instances
+                    (id, system_id, target_kind, target_node_id, target_cluster_id, component_id, namespace)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                      system_id = excluded.system_id,
+                      target_kind = excluded.target_kind,
+                      target_node_id = excluded.target_node_id,
+                      target_cluster_id = excluded.target_cluster_id,
+                      component_id = excluded.component_id,
+                      namespace = excluded.namespace
+                    """,
+                    (
+                        deployment.id,
+                        deployment.system_id,
+                        deployment.target_kind.value,
+                        deployment.target_node_id,
+                        deployment.target_cluster_id,
+                        deployment.component_id,
+                        deployment.namespace,
+                    ),
+                )
 
 
 def apply_migrations(connection: sqlite3.Connection, migrations_dir: Path) -> None:
