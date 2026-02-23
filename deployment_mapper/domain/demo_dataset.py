@@ -100,3 +100,16 @@ def build_demo_schema() -> DeploymentSchema:
 
     schema.validate()
     return schema
+
+
+def main() -> None:
+    """CLI entrypoint for running the demo dataset builder as a module."""
+
+    schema = build_demo_schema()
+    print(f"Loaded demo: {DEMO_DATASET_NAME}")
+    print(f"Subnets: {len(schema.subnets)}")
+    print(f"Deployment instances: {len(schema.deployment_instances)}")
+
+
+if __name__ == "__main__":
+    main()

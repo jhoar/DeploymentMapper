@@ -1,4 +1,3 @@
-from .demo_dataset import DEMO_DATASET_NAME, build_demo_schema
 from .models import (
     DeploymentInstance,
     DeploymentSchema,
@@ -13,6 +12,15 @@ from .models import (
     ValidationError,
     VirtualMachine,
 )
+
+DEMO_DATASET_NAME = "baseline-demo"
+
+
+def build_demo_schema() -> DeploymentSchema:
+    from .demo_dataset import build_demo_schema as _build_demo_schema
+
+    return _build_demo_schema()
+
 
 __all__ = [
     "Subnet",

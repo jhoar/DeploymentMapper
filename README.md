@@ -56,6 +56,22 @@ Subnets: 2
 Deployment instances: 2
 ```
 
+### Run the demo module directly (cross-platform)
+
+From the repository root:
+
+```bash
+python -m deployment_mapper.domain.demo_dataset
+```
+
+Windows PowerShell (same command):
+
+```powershell
+python -m deployment_mapper.domain.demo_dataset
+```
+
+> Note: running `python .\deployment_mapper\domain\demo_dataset.py` executes the file as a standalone script, which breaks relative imports like `from .models import ...`. Use `-m` so Python runs it as part of the `deployment_mapper` package.
+
 ### Validate your own schema in code
 
 ```python
