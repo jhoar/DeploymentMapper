@@ -28,16 +28,41 @@ class ApiValidateEndpointTests(unittest.TestCase):
         self.assertEqual(data["errors"], [])
         self.assertGreater(data["counts"]["subnets"], 0)
 
+    def test_request_id_header_is_set(self) -> None:
+        response = self.client.post("/schemas/validate", json=self.payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("X-Request-ID", response.headers)
+
     def test_validate_schema_invalid_payload(self) -> None:
         invalid_payload = dict(self.payload)
         invalid_payload["subnets"] = [{"id": "sn-a", "cidr": "bad-cidr", "name": "App"}]
 
         response = self.client.post("/schemas/validate", json=invalid_payload)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 422)
         data = response.json()
-        self.assertFalse(data["valid"])
-        self.assertGreater(len(data["errors"]), 0)
+        self.assertEqual(data["code"], "VALIDATION_ERROR")
+        self.assertIn("Input validation failed", data["message"])
+        self.assertGreater(len(data["details"]), 0)
+        self.assertIn("request_id", data)
+
+    def test_missing_required_field_returns_validation_error(self) -> None:
+        invalid_payload = dict(self.payload)
+        invalid_payload["hardware_nodes"] = [
+            {
+                "id": "host-1",
+                "hostname": "host-1",
+                "subnet_id": "sn-a",
+            }
+        ]
+
+        response = self.client.post("/schemas/validate", json=invalid_payload)
+
+        self.assertEqual(response.status_code, 422)
+        data = response.json()
+        self.assertEqual(data["code"], "VALIDATION_ERROR")
+        self.assertGreater(len(data["details"]), 0)
 
 
 if __name__ == "__main__":

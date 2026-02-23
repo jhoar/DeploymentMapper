@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from deployment_mapper.api.security import AuthContext, require_role
 from deployment_mapper.artifacts import LocalArtifactStore
 from deployment_mapper.domain.json_loader import load_schema_from_dict
-from deployment_mapper.domain.models import ValidationError
 from deployment_mapper.domain.uml_demo import generate_plantuml
 
 router = APIRouter(prefix="/diagrams", tags=["diagrams"])
@@ -26,10 +25,7 @@ def build_plantuml(
     _: AuthContext = Depends(require_role("editor")),
 ) -> dict[str, object]:
     """Generate PlantUML text for a validated schema payload."""
-    try:
-        schema = load_schema_from_dict(payload)
-    except (ValidationError, KeyError, TypeError, ValueError) as exc:
-        return {"valid": False, "errors": [str(exc)]}
+    schema = load_schema_from_dict(payload)
 
     puml = generate_plantuml(schema)
     stored_artifact = artifact_store.write_text(
@@ -58,10 +54,7 @@ def render_diagram(
     _: AuthContext = Depends(require_role("editor")),
 ) -> dict[str, object]:
     """Stub endpoint for future rendering support."""
-    try:
-        load_schema_from_dict(payload)
-    except (ValidationError, KeyError, TypeError, ValueError) as exc:
-        return {"valid": False, "errors": [str(exc)]}
+    load_schema_from_dict(payload)
 
     stored_artifact = artifact_store.write_text(
         request_id=_request_id(payload),
