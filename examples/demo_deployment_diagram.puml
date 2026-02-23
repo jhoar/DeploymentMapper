@@ -1,0 +1,28 @@
+@startuml
+title baseline-demo deployment
+skinparam componentStyle rectangle
+
+node "Subnet: production\n10.0.0.0/24" as subnet_subnet-prod {
+  node "HW: bm-prod-01\n10.0.0.10\n[PHYSICAL]" as hw_node-baremetal-01
+  node "HW: k8s-worker-01\n10.0.0.11\n[K8S_NODE]" as hw_node-k8s-worker-01
+  node "VM: vm-app-01\n10.0.0.21" as vm_vm-app-01
+  cloud "K8S Cluster: prod-cluster" as k8s_cluster-prod-01
+}
+
+node "Subnet: management\n10.0.1.0/24" as subnet_subnet-mgmt {
+  database "Storage: nas-01\n10.0.1.30" as st_storage-nas-01
+  node "Switch: sw-core-01\n10.0.1.40" as sw_switch-core-01
+}
+
+hw_node-baremetal-01 --> vm_vm-app-01 : hosts
+k8s_cluster-prod-01 --> hw_node-k8s-worker-01 : worker
+
+component "System: payments-api\nsys-payments" as sys_sys-payments
+component "System: observability-stack\nsys-observability" as sys_sys-observability
+
+sys_sys-payments --> dep_deploy-payments-vm : deploys (payments-service)
+dep_deploy-payments-vm --> vm_vm-app-01 : VM
+sys_sys-observability --> dep_deploy-observability-ns : deploys (prometheus)
+dep_deploy-observability-ns --> k8s_cluster-prod-01 : NAMESPACE/monitoring
+
+@enduml

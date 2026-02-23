@@ -22,6 +22,12 @@ def build_demo_schema() -> DeploymentSchema:
     return _build_demo_schema()
 
 
+def generate_demo_plantuml() -> str:
+    from .uml_demo import generate_plantuml
+
+    return generate_plantuml(build_demo_schema(), title=f"{DEMO_DATASET_NAME} deployment")
+
+
 __all__ = [
     "Subnet",
     "HardwareNode",
@@ -37,4 +43,5 @@ __all__ = [
     "ValidationError",
     "DEMO_DATASET_NAME",
     "build_demo_schema",
+    "generate_demo_plantuml",
 ]

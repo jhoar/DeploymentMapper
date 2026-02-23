@@ -72,6 +72,20 @@ python -m deployment_mapper.domain.demo_dataset
 
 > Note: running `python .\deployment_mapper\domain\demo_dataset.py` executes the file as a standalone script, which breaks relative imports like `from .models import ...`. Use `-m` so Python runs it as part of the `deployment_mapper` package.
 
+### Generate a UML deployment diagram from the demo
+
+From the repository root:
+
+```bash
+python -m deployment_mapper.domain.uml_demo
+```
+
+This command generates:
+
+- `examples/demo_deployment_diagram.puml`
+
+You can render it with any PlantUML-compatible tool.
+
 ### Validate your own schema in code
 
 ```python
