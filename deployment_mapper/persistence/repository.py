@@ -143,6 +143,61 @@ class DeploymentRepository:
             (system_id,),
         ).fetchall()
 
+        subnets = self.connection.execute(
+            """
+            SELECT DISTINCT s.id, s.name, s.cidr
+            FROM deployment_instances d
+            LEFT JOIN hardware_nodes h
+              ON d.target_kind = 'HOST'
+             AND d.target_node_id = h.id
+            LEFT JOIN virtual_machines v
+              ON d.target_kind = 'VM'
+             AND d.target_node_id = v.id
+            LEFT JOIN kubernetes_clusters c
+              ON d.target_kind IN ('CLUSTER', 'K8S_NAMESPACE')
+             AND d.target_cluster_id = c.id
+            JOIN subnets s ON s.id = COALESCE(h.subnet_id, v.subnet_id, c.subnet_id)
+            WHERE d.system_id = ?
+            ORDER BY s.id
+            """,
+            (system_id,),
+        ).fetchall()
+
+        subnet_ids = [row["id"] for row in subnets]
+        if subnet_ids:
+            placeholders = ",".join("?" for _ in subnet_ids)
+            hardware_nodes = self.connection.execute(
+                f"""
+                SELECT id, hostname, ip_address, subnet_id, kind
+                FROM hardware_nodes
+                WHERE subnet_id IN ({placeholders})
+                ORDER BY subnet_id, hostname
+                """,
+                tuple(subnet_ids),
+            ).fetchall()
+            virtual_machines = self.connection.execute(
+                f"""
+                SELECT id, hostname, ip_address, subnet_id, host_node_id
+                FROM virtual_machines
+                WHERE subnet_id IN ({placeholders})
+                ORDER BY subnet_id, hostname
+                """,
+                tuple(subnet_ids),
+            ).fetchall()
+            kubernetes_clusters = self.connection.execute(
+                f"""
+                SELECT id, name, subnet_id
+                FROM kubernetes_clusters
+                WHERE subnet_id IN ({placeholders})
+                ORDER BY subnet_id, name
+                """,
+                tuple(subnet_ids),
+            ).fetchall()
+        else:
+            hardware_nodes = []
+            virtual_machines = []
+            kubernetes_clusters = []
+
         cluster_ids = [row["target_cluster_id"] for row in deployments if row["target_cluster_id"]]
         cluster_nodes: dict[str, list[dict[str, str]]] = {}
         if cluster_ids:
@@ -170,6 +225,10 @@ class DeploymentRepository:
             "system": dict(system),
             "components": [dict(row) for row in components],
             "deployments": [dict(row) for row in deployments],
+            "subnets": [dict(row) for row in subnets],
+            "hardware_nodes": [dict(row) for row in hardware_nodes],
+            "virtual_machines": [dict(row) for row in virtual_machines],
+            "kubernetes_clusters": [dict(row) for row in kubernetes_clusters],
             "clusters": cluster_nodes,
             "hosting_nodes": [
                 {
@@ -180,6 +239,139 @@ class DeploymentRepository:
                 }
                 for node in self.list_nodes_hosting_system(system_id)
             ],
+        }
+
+    def get_system_topology(self, system_id: str) -> dict[str, Any]:
+        """Return transitive topology links for one system (system->component->deployment->target->subnet)."""
+        graph = self.fetch_full_deployment_graph(system_id)
+        if not graph:
+            return {}
+
+        relations = self.connection.execute(
+            """
+            SELECT d.id AS deployment_id,
+                   c.id AS component_id,
+                   c.name AS component_name,
+                   d.target_kind,
+                   d.namespace,
+                   COALESCE(h.id, vm.id, kc.id) AS target_id,
+                   CASE
+                     WHEN d.target_kind = 'HOST' THEN 'hardware'
+                     WHEN d.target_kind = 'VM' THEN 'vm'
+                     ELSE 'cluster'
+                   END AS target_type,
+                   COALESCE(h.hostname, vm.hostname, kc.name) AS target_name,
+                   COALESCE(h.ip_address, vm.ip_address, '') AS target_ip,
+                   s.id AS subnet_id,
+                   s.name AS subnet_name,
+                   s.cidr AS subnet_cidr
+            FROM deployment_instances d
+            LEFT JOIN components c ON c.id = d.component_id
+            LEFT JOIN hardware_nodes h
+              ON d.target_kind = 'HOST'
+             AND d.target_node_id = h.id
+            LEFT JOIN virtual_machines vm
+              ON d.target_kind = 'VM'
+             AND d.target_node_id = vm.id
+            LEFT JOIN kubernetes_clusters kc
+              ON d.target_kind IN ('CLUSTER', 'K8S_NAMESPACE')
+             AND d.target_cluster_id = kc.id
+            JOIN subnets s ON s.id = COALESCE(h.subnet_id, vm.subnet_id, kc.subnet_id)
+            WHERE d.system_id = ?
+            ORDER BY c.name, d.id
+            """,
+            (system_id,),
+        ).fetchall()
+
+        graph["relations"] = [dict(row) for row in relations]
+        return graph
+
+    def get_subnet_deployments(self, subnet_id: str) -> dict[str, Any]:
+        """Return deployments in a subnet via their resolved targets, including transitive path details."""
+        subnet = self.connection.execute(
+            "SELECT id, name, cidr FROM subnets WHERE id = ?",
+            (subnet_id,),
+        ).fetchone()
+        if subnet is None:
+            return {}
+
+        rows = self.connection.execute(
+            """
+            SELECT sys.id AS system_id,
+                   sys.name AS system_name,
+                   sys.version AS system_version,
+                   c.id AS component_id,
+                   c.name AS component_name,
+                   d.id AS deployment_id,
+                   d.target_kind,
+                   d.namespace,
+                   COALESCE(h.id, vm.id, kc.id) AS target_id,
+                   CASE
+                     WHEN d.target_kind = 'HOST' THEN 'hardware'
+                     WHEN d.target_kind = 'VM' THEN 'vm'
+                     ELSE 'cluster'
+                   END AS target_type,
+                   COALESCE(h.hostname, vm.hostname, kc.name) AS target_name,
+                   COALESCE(h.ip_address, vm.ip_address, '') AS target_ip
+            FROM deployment_instances d
+            JOIN software_systems sys ON sys.id = d.system_id
+            LEFT JOIN components c ON c.id = d.component_id
+            LEFT JOIN hardware_nodes h
+              ON d.target_kind = 'HOST'
+             AND d.target_node_id = h.id
+            LEFT JOIN virtual_machines vm
+              ON d.target_kind = 'VM'
+             AND d.target_node_id = vm.id
+            LEFT JOIN kubernetes_clusters kc
+              ON d.target_kind IN ('CLUSTER', 'K8S_NAMESPACE')
+             AND d.target_cluster_id = kc.id
+            WHERE COALESCE(h.subnet_id, vm.subnet_id, kc.subnet_id) = ?
+            ORDER BY sys.name, c.name, d.id
+            """,
+            (subnet_id,),
+        ).fetchall()
+
+        systems: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            system_bucket = systems.setdefault(
+                row["system_id"],
+                {
+                    "system_id": row["system_id"],
+                    "system_name": row["system_name"],
+                    "system_version": row["system_version"],
+                    "components": {},
+                },
+            )
+            component_key = row["component_id"] or "<unassigned>"
+            component_bucket = system_bucket["components"].setdefault(
+                component_key,
+                {
+                    "component_id": row["component_id"],
+                    "component_name": row["component_name"] or "<unassigned>",
+                    "deployments": [],
+                },
+            )
+            component_bucket["deployments"].append(
+                {
+                    "deployment_id": row["deployment_id"],
+                    "target_kind": row["target_kind"],
+                    "target_id": row["target_id"],
+                    "target_type": row["target_type"],
+                    "target_name": row["target_name"],
+                    "target_ip": row["target_ip"],
+                    "namespace": row["namespace"],
+                }
+            )
+
+        flattened_systems: list[dict[str, Any]] = []
+        for system in systems.values():
+            system["components"] = list(system["components"].values())
+            flattened_systems.append(system)
+
+        return {
+            "subnet": dict(subnet),
+            "systems": flattened_systems,
+            "relations": [dict(row) for row in rows],
         }
 
     def upsert_schema(self, schema: DeploymentSchema) -> None:
