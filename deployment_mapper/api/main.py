@@ -9,6 +9,7 @@ from deployment_mapper.api.errors import (
     http_exception_handler,
     unhandled_exception_handler,
     validation_error_handler,
+    payload_parsing_error_handler,
     request_validation_error_handler,
 )
 from deployment_mapper.api.observability import RequestContextMiddleware, metrics_response
@@ -20,6 +21,9 @@ from deployment_mapper.domain.models import ValidationError
 app = FastAPI(title="DeploymentMapper API")
 app.add_middleware(RequestContextMiddleware)
 app.add_exception_handler(ValidationError, validation_error_handler)
+app.add_exception_handler(KeyError, payload_parsing_error_handler)
+app.add_exception_handler(TypeError, payload_parsing_error_handler)
+app.add_exception_handler(ValueError, payload_parsing_error_handler)
 app.add_exception_handler(RequestValidationError, request_validation_error_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)

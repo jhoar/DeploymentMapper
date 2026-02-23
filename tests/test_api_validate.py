@@ -47,6 +47,23 @@ class ApiValidateEndpointTests(unittest.TestCase):
         self.assertGreater(len(data["details"]), 0)
         self.assertIn("request_id", data)
 
+    def test_missing_required_field_returns_validation_error(self) -> None:
+        invalid_payload = dict(self.payload)
+        invalid_payload["hardware_nodes"] = [
+            {
+                "id": "host-1",
+                "hostname": "host-1",
+                "subnet_id": "sn-a",
+            }
+        ]
+
+        response = self.client.post("/schemas/validate", json=invalid_payload)
+
+        self.assertEqual(response.status_code, 422)
+        data = response.json()
+        self.assertEqual(data["code"], "VALIDATION_ERROR")
+        self.assertGreater(len(data["details"]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

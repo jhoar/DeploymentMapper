@@ -93,3 +93,13 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         for key, value in exc.headers.items():
             response.headers[key] = value
     return response
+
+
+async def payload_parsing_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    return error_response(
+        request=request,
+        status_code=422,
+        code="VALIDATION_ERROR",
+        message="Input validation failed.",
+        details=[str(exc)],
+    )
