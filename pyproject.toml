@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deployment_mapper"
+version = "0.1.0"
+description = "DeploymentMapper API and topology tooling"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "DeploymentMapper contributors" }]
+dependencies = [
+  "PyYAML>=6.0",
+  "fastapi>=0.110.0",
+  "uvicorn>=0.29.0",
+  "SQLAlchemy>=2.0.0",
+  "alembic>=1.13.0",
+  "PyJWT>=2.8.0",
+]
+
+[project.scripts]
+deployment-mapper = "deployment_mapper.cli:main"
+deployment-mapper-server = "deployment_mapper.api.__main__:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["deployment_mapper*"]
+exclude = ["tests*"]
