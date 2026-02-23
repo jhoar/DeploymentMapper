@@ -1,0 +1,76 @@
+{
+  "subnets": [
+    {"id": "subnet-prod", "cidr": "10.0.0.0/24", "name": "production"},
+    {"id": "subnet-mgmt", "cidr": "10.0.1.0/24", "name": "management"}
+  ],
+  "hardware_nodes": [
+    {
+      "id": "node-baremetal-01",
+      "hostname": "bm-prod-01",
+      "ip_address": "10.0.0.10",
+      "subnet_id": "subnet-prod",
+      "kind": "PHYSICAL"
+    },
+    {
+      "id": "node-k8s-worker-01",
+      "hostname": "k8s-worker-01",
+      "ip_address": "10.0.0.11",
+      "subnet_id": "subnet-prod",
+      "kind": "K8S_NODE"
+    }
+  ],
+  "kubernetes_clusters": [
+    {
+      "id": "cluster-prod-01",
+      "name": "prod-cluster",
+      "subnet_id": "subnet-prod",
+      "node_ids": ["node-k8s-worker-01"]
+    }
+  ],
+  "virtual_machines": [
+    {
+      "id": "vm-app-01",
+      "hostname": "vm-app-01",
+      "ip_address": "10.0.0.21",
+      "subnet_id": "subnet-prod",
+      "host_node_id": "node-baremetal-01"
+    }
+  ],
+  "storage_servers": [
+    {
+      "id": "storage-nas-01",
+      "hostname": "nas-01",
+      "ip_address": "10.0.1.30",
+      "subnet_id": "subnet-mgmt"
+    }
+  ],
+  "network_switches": [
+    {
+      "id": "switch-core-01",
+      "hostname": "sw-core-01",
+      "management_ip": "10.0.1.40",
+      "subnet_id": "subnet-mgmt"
+    }
+  ],
+  "software_systems": [
+    {"id": "sys-payments", "name": "payments-api", "version": "2.4.1"},
+    {"id": "sys-observability", "name": "observability-stack", "version": "1.7.0"}
+  ],
+  "deployment_instances": [
+    {
+      "id": "deploy-payments-vm",
+      "system_id": "sys-payments",
+      "target_kind": "VM",
+      "target_node_id": "vm-app-01",
+      "component_id": "payments-service"
+    },
+    {
+      "id": "deploy-observability-ns",
+      "system_id": "sys-observability",
+      "target_kind": "K8S_NAMESPACE",
+      "target_cluster_id": "cluster-prod-01",
+      "namespace": "monitoring",
+      "component_id": "prometheus"
+    }
+  ]
+}
