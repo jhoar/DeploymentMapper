@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
-from deployment_mapper.domain.json_loader import parse_schema_payload
+from deployment_mapper.domain.json_loader import load_schema_from_dict
 from deployment_mapper.domain.models import ValidationError
 from deployment_mapper.domain.uml_demo import generate_plantuml
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/diagrams", tags=["diagrams"])
 def build_plantuml(payload: dict[str, object]) -> dict[str, object]:
     """Generate PlantUML text for a validated schema payload."""
     try:
-        schema = parse_schema_payload(payload)
+        schema = load_schema_from_dict(payload)
     except (ValidationError, KeyError, TypeError, ValueError) as exc:
         return {"valid": False, "errors": [str(exc)]}
 
@@ -27,7 +27,7 @@ def build_plantuml(payload: dict[str, object]) -> dict[str, object]:
 def render_diagram(payload: dict[str, object]) -> dict[str, object]:
     """Stub endpoint for future rendering support."""
     try:
-        parse_schema_payload(payload)
+        load_schema_from_dict(payload)
     except (ValidationError, KeyError, TypeError, ValueError) as exc:
         return {"valid": False, "errors": [str(exc)]}
 

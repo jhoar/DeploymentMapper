@@ -1,18 +1,9 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
-from .json_loader import parse_schema_payload
-from .models import DeploymentSchema
+from .json_loader import load_schema_from_json_file
 from .uml_demo import generate_plantuml
-
-
-def load_schema_from_json_file(path: str | Path) -> DeploymentSchema:
-    """Load DeploymentSchema from a JSON payload matching examples/demo_input_dataset.json format."""
-
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    return parse_schema_payload(payload)
 
 
 def main() -> None:
