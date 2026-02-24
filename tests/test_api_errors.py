@@ -53,7 +53,7 @@ class ApiErrorContractTests(unittest.TestCase):
             self._assert_request_id_contract(forbidden)
 
     def test_non_auth_http_exceptions_use_http_error_code(self) -> None:
-        response = self.client.get("/this/route/does-not-exist")
+        response = self.client.get("/diagrams/artifacts/missing-request/missing-artifact.txt")
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.json()["code"], "HTTP_ERROR")
