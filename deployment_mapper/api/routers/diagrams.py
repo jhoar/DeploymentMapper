@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from deployment_mapper.api.security import AuthContext, require_role
-from deployment_mapper.artifacts import LocalArtifactStore
+from deployment_mapper.artifacts import LocalArtifactStore, StoredArtifact
 from deployment_mapper.domain.json_loader import load_schema_from_dict
 from deployment_mapper.domain.uml_demo import generate_plantuml
 
@@ -17,6 +17,36 @@ artifact_store = LocalArtifactStore(base_dir=os.getenv("DEPLOYMENT_MAPPER_ARTIFA
 def _request_id(payload: dict[str, object]) -> str:
     request_id = payload.get("request_id")
     return str(request_id) if request_id else "default-request"
+
+
+def _artifact_metadata_dict(
+    stored_artifact: StoredArtifact,
+    *,
+    include_request_details: bool = False,
+) -> dict[str, str | None]:
+    metadata = {
+        "created_at": stored_artifact.metadata.created_at,
+        "content_type": stored_artifact.metadata.content_type,
+        "source_schema_id": stored_artifact.metadata.source_schema_id,
+        "source_schema_version": stored_artifact.metadata.source_schema_version,
+    }
+    if include_request_details:
+        metadata["request_id"] = stored_artifact.metadata.request_id
+        metadata["schema_hash"] = stored_artifact.metadata.schema_hash
+    return metadata
+
+
+def _artifact_response_base(
+    stored_artifact: StoredArtifact,
+    *,
+    path_field: str,
+    metadata_field: str,
+    include_request_details: bool = False,
+) -> dict[str, object]:
+    return {
+        path_field: str(stored_artifact.path),
+        metadata_field: _artifact_metadata_dict(stored_artifact, include_request_details=include_request_details),
+    }
 
 
 @router.post("/plantuml")
@@ -38,13 +68,7 @@ def build_plantuml(
         "valid": True,
         "errors": [],
         "puml": puml,
-        "artifact_path": str(stored_artifact.path),
-        "artifact_metadata": {
-            "created_at": stored_artifact.metadata.created_at,
-            "content_type": stored_artifact.metadata.content_type,
-            "source_schema_id": stored_artifact.metadata.source_schema_id,
-            "source_schema_version": stored_artifact.metadata.source_schema_version,
-        },
+        **_artifact_response_base(stored_artifact, path_field="artifact_path", metadata_field="artifact_metadata"),
     }
 
 
@@ -67,13 +91,7 @@ def render_diagram(
         "errors": [],
         "rendered": False,
         "message": "Rendering is not enabled in this build.",
-        "output_path": str(stored_artifact.path),
-        "artifact_metadata": {
-            "created_at": stored_artifact.metadata.created_at,
-            "content_type": stored_artifact.metadata.content_type,
-            "source_schema_id": stored_artifact.metadata.source_schema_id,
-            "source_schema_version": stored_artifact.metadata.source_schema_version,
-        },
+        **_artifact_response_base(stored_artifact, path_field="output_path", metadata_field="artifact_metadata"),
     }
 
 
@@ -110,16 +128,13 @@ def read_artifact(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     return {
-        "path": str(stored_artifact.path),
+        **_artifact_response_base(
+            stored_artifact,
+            path_field="path",
+            metadata_field="metadata",
+            include_request_details=True,
+        ),
         "content": stored_artifact.path.read_text(encoding="utf-8"),
-        "metadata": {
-            "created_at": stored_artifact.metadata.created_at,
-            "content_type": stored_artifact.metadata.content_type,
-            "source_schema_id": stored_artifact.metadata.source_schema_id,
-            "source_schema_version": stored_artifact.metadata.source_schema_version,
-            "request_id": stored_artifact.metadata.request_id,
-            "schema_hash": stored_artifact.metadata.schema_hash,
-        },
     }
 
 
