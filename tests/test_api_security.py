@@ -88,6 +88,63 @@ class ApiSecurityTests(unittest.TestCase):
             self.assertEqual(allowed.status_code, 200)
             self.assertIn("base_dir", allowed.json())
 
+    def test_jwt_mode_accepts_role_claim(self) -> None:
+        with patch.dict(os.environ, {"DEPLOYMENT_MAPPER_AUTH_MODE": "jwt"}, clear=False), patch(
+            "deployment_mapper.api.security._decode_jwt",
+            return_value={"sub": "jwt-user", "role": "admin"},
+        ):
+            response = self.client.get("/diagrams/admin/config", headers={"Authorization": "Bearer valid-token"})
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("base_dir", response.json())
+
+    def test_jwt_mode_accepts_roles_claim_list(self) -> None:
+        with patch.dict(os.environ, {"DEPLOYMENT_MAPPER_AUTH_MODE": "jwt"}, clear=False), patch(
+            "deployment_mapper.api.security._decode_jwt",
+            return_value={"sub": "jwt-user", "roles": ["editor", "reader"]},
+        ):
+            response = self.client.post(
+                "/schemas/validate",
+                json=self.payload,
+                headers={"Authorization": "Bearer valid-token"},
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.json()["valid"])
+
+    def test_api_key_or_jwt_prefers_api_key_when_both_headers_present(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "DEPLOYMENT_MAPPER_AUTH_MODE": "api_key_or_jwt",
+                "DEPLOYMENT_MAPPER_API_KEYS_READER": "reader-key",
+            },
+            clear=False,
+        ), patch("deployment_mapper.api.security._decode_jwt") as decode_jwt:
+            response = self.client.get(
+                "/diagrams/admin/config",
+                headers={"X-API-Key": "reader-key", "Authorization": "Bearer admin-token"},
+            )
+            self.assertEqual(response.status_code, 403)
+            self.assertEqual(response.json()["code"], "AUTH_ERROR")
+            decode_jwt.assert_not_called()
+
+    def test_unsupported_auth_mode_returns_http_500(self) -> None:
+        with patch.dict(os.environ, {"DEPLOYMENT_MAPPER_AUTH_MODE": "unknown-mode"}, clear=False):
+            response = self.client.get("/diagrams/admin/config")
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.json()["code"], "HTTP_ERROR")
+            self.assertIn("Unsupported auth mode", response.json()["details"][0])
+
+    def test_jwt_mode_without_secret_returns_http_500(self) -> None:
+        with patch.dict(
+            os.environ,
+            {"DEPLOYMENT_MAPPER_AUTH_MODE": "jwt", "DEPLOYMENT_MAPPER_JWT_SECRET": ""},
+            clear=False,
+        ):
+            response = self.client.get("/diagrams/admin/config", headers={"Authorization": "Bearer token"})
+            self.assertEqual(response.status_code, 500)
+            self.assertEqual(response.json()["code"], "HTTP_ERROR")
+            self.assertIn("DEPLOYMENT_MAPPER_JWT_SECRET", response.json()["details"][0])
+
 
 if __name__ == "__main__":
     unittest.main()
