@@ -55,6 +55,70 @@ def _connect_repository(db_path: str) -> DeploymentRepository:
     return DeploymentRepository(connection)
 
 
+def _handle_get_system_topology(repository: DeploymentRepository, system_id: str) -> int:
+    topology = repository.get_system_topology(system_id)
+    if not topology:
+        print(f"System '{system_id}' not found")
+        return 1
+    _emit_result(_build_system_summary(topology), topology)
+    return 0
+
+
+def _handle_get_subnet_deployments(repository: DeploymentRepository, subnet_id: str) -> int:
+    payload = repository.get_subnet_deployments(subnet_id)
+    if not payload:
+        print(f"Subnet '{subnet_id}' not found")
+        return 1
+    _emit_result(_build_subnet_summary(payload), payload)
+    return 0
+
+
+def _handle_generate_deployment_diagram(
+    repository: DeploymentRepository,
+    system_id: str,
+    output_format: str,
+    output: str | None,
+) -> int:
+    topology = repository.get_system_topology(system_id)
+    if not topology:
+        print(f"System '{system_id}' not found")
+        return 1
+
+    try:
+        validate_topology_for_diagram(system_id, topology)
+    except ValidationError as exc:
+        print(f"Validation failed: {exc}")
+        return 1
+
+    if output_format == "puml":
+        rendered = render_system_topology(system_id, topology)
+        payload = {
+            "system_id": system_id,
+            "format": "puml",
+            "puml": rendered["puml"],
+        }
+        summary = f"Generated PlantUML for system {system_id}"
+        _emit_result(summary, payload)
+        return 0
+
+    output_path = Path(output) if output else Path(f"{system_id}-deployment.{output_format}")
+    rendered = render_system_topology(system_id, topology, output_image=output_path)
+    payload = {
+        "system_id": system_id,
+        "format": output_format,
+        "output_path": str(output_path),
+        "image_path": rendered["image_path"],
+        "puml": rendered["puml"],
+    }
+    summary = (
+        f"Generated {output_format.upper()} diagram at {output_path}"
+        if rendered["image_path"]
+        else f"PlantUML runtime unavailable; generated PUML only for {system_id}"
+    )
+    _emit_result(summary, payload)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="deployment-mapper")
     parser.add_argument("--db", default="deployment_mapper.db", help="Path to the sqlite database")
@@ -85,60 +149,13 @@ def main(argv: list[str] | None = None) -> int:
     repository = _connect_repository(args.db)
 
     if args.command == "get-system-topology":
-        topology = repository.get_system_topology(args.system_id)
-        if not topology:
-            print(f"System '{args.system_id}' not found")
-            return 1
-        _emit_result(_build_system_summary(topology), topology)
-        return 0
+        return _handle_get_system_topology(repository, args.system_id)
 
     if args.command == "get-subnet-deployments":
-        payload = repository.get_subnet_deployments(args.subnet_id)
-        if not payload:
-            print(f"Subnet '{args.subnet_id}' not found")
-            return 1
-        _emit_result(_build_subnet_summary(payload), payload)
-        return 0
+        return _handle_get_subnet_deployments(repository, args.subnet_id)
 
     if args.command == "generate-deployment-diagram":
-        topology = repository.get_system_topology(args.system_id)
-        if not topology:
-            print(f"System '{args.system_id}' not found")
-            return 1
-
-        try:
-            validate_topology_for_diagram(args.system_id, topology)
-        except ValidationError as exc:
-            print(f"Validation failed: {exc}")
-            return 1
-
-        if args.format == "puml":
-            rendered = render_system_topology(args.system_id, topology)
-            payload = {
-                "system_id": args.system_id,
-                "format": "puml",
-                "puml": rendered["puml"],
-            }
-            summary = f"Generated PlantUML for system {args.system_id}"
-            _emit_result(summary, payload)
-            return 0
-
-        output_path = Path(args.output) if args.output else Path(f"{args.system_id}-deployment.{args.format}")
-        rendered = render_system_topology(args.system_id, topology, output_image=output_path)
-        payload = {
-            "system_id": args.system_id,
-            "format": args.format,
-            "output_path": str(output_path),
-            "image_path": rendered["image_path"],
-            "puml": rendered["puml"],
-        }
-        summary = (
-            f"Generated {args.format.upper()} diagram at {output_path}"
-            if rendered["image_path"]
-            else f"PlantUML runtime unavailable; generated PUML only for {args.system_id}"
-        )
-        _emit_result(summary, payload)
-        return 0
+        return _handle_generate_deployment_diagram(repository, args.system_id, args.format, args.output)
 
     parser.print_help()
     return 1
