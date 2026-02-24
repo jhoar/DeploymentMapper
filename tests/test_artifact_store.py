@@ -99,6 +99,87 @@ class LocalArtifactStoreTests(unittest.TestCase):
             self.assertTrue(fresh.path.exists())
             self.assertTrue(fresh.metadata_path.exists())
 
+    def test_read_text_rejects_traversal_like_artifact_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = LocalArtifactStore(base_dir=tmp)
+
+            with self.assertRaises(FileNotFoundError):
+                store.read_text("req-1", "../outside.txt")
+
+    def test_read_text_raises_when_metadata_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = LocalArtifactStore(base_dir=tmp)
+            request_dir = Path(tmp) / "req-missing-meta"
+            request_dir.mkdir(parents=True, exist_ok=True)
+            artifact_path = request_dir / "artifact.txt"
+            artifact_path.write_text("payload", encoding="utf-8")
+
+            with self.assertRaises(FileNotFoundError):
+                store.read_text("req-missing-meta", "artifact.txt")
+
+    def test_list_artifacts_request_id_returns_only_artifact_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = LocalArtifactStore(base_dir=tmp)
+            stored = store.write_text(
+                request_id="req-files-only",
+                schema_payload={"schema_id": "id"},
+                content="artifact content",
+                content_type="text/plain",
+            )
+            stray_metadata = stored.path.parent / "extra.metadata.json"
+            stray_metadata.write_text("{}", encoding="utf-8")
+
+            artifacts = store.list_artifacts(request_id="req-files-only")
+
+            self.assertEqual(len(artifacts), 1)
+            self.assertEqual(artifacts[0].path, stored.path)
+            self.assertFalse(artifacts[0].path.name.endswith(".metadata.json"))
+
+    def test_list_artifacts_skips_orphan_artifacts_without_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = LocalArtifactStore(base_dir=tmp)
+            stored = store.write_text(
+                request_id="req-with-orphan",
+                schema_payload={"schema_id": "valid"},
+                content="ok",
+                content_type="text/plain",
+            )
+            orphan_path = stored.path.parent / "orphan.txt"
+            orphan_path.write_text("orphan", encoding="utf-8")
+
+            artifacts = store.list_artifacts(request_id="req-with-orphan")
+
+            self.assertEqual([artifact.path for artifact in artifacts], [stored.path])
+
+    def test_cleanup_returns_count_of_removed_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = LocalArtifactStore(base_dir=tmp, max_count=1)
+            old = store.write_text(
+                request_id="cleanup-old",
+                schema_payload={"schema_id": "old"},
+                content="old",
+                content_type="text/plain",
+            )
+            time.sleep(0.01)
+            latest = store.write_text(
+                request_id="cleanup-new",
+                schema_payload={"schema_id": "new"},
+                content="new",
+                content_type="text/plain",
+            )
+            store.max_count = 0
+
+            before = len(store.list_artifacts())
+            removed_count = store.cleanup()
+            after = len(store.list_artifacts())
+
+            self.assertEqual(removed_count, before - after)
+            self.assertEqual(removed_count, 1)
+            self.assertFalse(old.path.exists())
+            self.assertFalse(old.metadata_path.exists())
+            self.assertFalse(latest.path.exists())
+            self.assertFalse(latest.metadata_path.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
