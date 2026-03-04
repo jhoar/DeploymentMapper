@@ -1,0 +1,69 @@
+﻿Manifest:
+  manifestId: split-b
+  path: split_b.yaml
+Organizations: []
+Projects: []
+Applications: []
+Components: []
+Environments:
+  - envId: env-stage
+    projectId: prj-1
+    name: Stage
+    type: Staging
+Nodes:
+  - nodeId: node-2
+    hostname: app02.local
+    ipAddress: 10.0.0.2
+    type: VM
+NodeRoles:
+  - nodeId: node-2
+    roles: [app_server]
+Clusters:
+  - clusterId: cl-k8s
+    clusterName: k8s
+    type: Kubernetes
+ClusterRoles:
+  - clusterId: cl-k8s
+    roles: [k8s_prod]
+GridMembers: []
+ClusterEndpoints:
+  - clusterId: cl-k8s
+    endpointNodeIds: [node-2]
+K8sNamespaces:
+  - clusterId: cl-k8s
+    namespaceName: apps
+K8sWorkloads:
+  - clusterId: cl-k8s
+    namespaceName: apps
+    kind: Deployment
+    workloadName: api
+K8sServices:
+  - clusterId: cl-k8s
+    namespaceName: apps
+    serviceName: api-svc
+    type: ClusterIP
+    routesToWorkload:
+      kind: Deployment
+      workloadName: api
+K8sPods:
+  - clusterId: cl-k8s
+    namespaceName: apps
+    podNames: [api-1]
+Filers: []
+FilerRoles: []
+Volumes: []
+Mounts: []
+Networks: []
+Subnets: []
+SubnetConnections: []
+Deployments:
+  - deploymentId: dep-2
+    componentId: cmp-1
+    projectId: prj-1
+    envId: env-stage
+    targets:
+      k8sWorkloads:
+        - clusterId: cl-k8s
+          namespaceName: apps
+          kind: Deployment
+          workloadName: api

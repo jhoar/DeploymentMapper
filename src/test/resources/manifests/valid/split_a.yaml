@@ -1,0 +1,86 @@
+﻿Manifest:
+  manifestId: split-a
+  path: split_a.yaml
+Organizations:
+  - orgId: org-1
+    name: Acme
+Projects:
+  - projectId: prj-1
+    name: ProjectOne
+    orgId: org-1
+Applications:
+  - appId: app-1
+    name: api
+    configurationId: cfg-1
+    version: 1.0
+    projectId: prj-1
+Components:
+  - componentId: cmp-1
+    name: service
+    version: 1.0
+    appId: app-1
+Environments:
+  - envId: env-prod
+    projectId: prj-1
+    name: PROD
+    type: Production
+Nodes:
+  - nodeId: node-1
+    hostname: app01.local
+    ipAddress: 10.0.0.1
+    type: VM
+NodeRoles:
+  - nodeId: node-1
+    roles: [app_server]
+Clusters:
+  - clusterId: cl-grid
+    clusterName: grid
+    type: Grid
+ClusterRoles: []
+GridMembers:
+  - clusterId: cl-grid
+    managers: [node-1]
+    workers: []
+ClusterEndpoints: []
+K8sNamespaces: []
+K8sWorkloads: []
+K8sServices: []
+K8sPods: []
+Filers:
+  - filerId: filer-1
+    name: nas
+    ipAddress: 10.0.2.1
+    type: NAS
+FilerRoles: []
+Volumes:
+  - volumeId: vol-1
+    name: vol
+    protocol: NFS
+    filerId: filer-1
+Mounts:
+  - volumeId: vol-1
+    nodeId: node-1
+    mountPath: /mnt/vol
+    accessMode: rw
+    exportOrShareName: /exports/vol
+    protocolDetails: NFS V4
+Networks:
+  - networkId: net-1
+    name: appnet
+Subnets:
+  - subnetId: sn-1
+    networkId: net-1
+    name: front
+    cidr: 10.0.0.0/24
+    vlan: "100"
+SubnetConnections:
+  - entityType: Node
+    entityId: node-1
+    subnetId: sn-1
+Deployments:
+  - deploymentId: dep-1
+    componentId: cmp-1
+    projectId: prj-1
+    envId: env-prod
+    targets:
+      nodes: [node-1]

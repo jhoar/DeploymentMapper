@@ -1,0 +1,396 @@
+# Example manifest (clean keys, no "allowed values" embedded in field names)
+# Normalization conventions used here:
+# - env.name is case-normalized (lowercase)
+# - role names are already normalized (lowercase, spaces -> underscores)
+# - protocolDetails is normalized
+
+Manifest:
+  manifestId: m-0001
+  path: examples/acme_example_manifest.yaml
+
+Organizations:
+  - orgId: org-001
+    name: Acme_Corp
+
+Projects:
+  - projectId: prj-payments
+    name: Payments_Platform
+    orgId: org-001
+  - projectId: prj-analytics
+    name: Analytics_Stack
+    orgId: org-001
+
+Applications:
+  - appId: app-pay-api
+    name: payments_api
+    configurationId: cfg-pay-api
+    version: 2.4.1
+    projectId: prj-payments
+  - appId: app-pay-ui
+    name: payments_ui
+    configurationId: cfg-pay-ui
+    version: 1.9.0
+    projectId: prj-payments
+  - appId: app-ana-etl
+    name: analytics_etl
+    configurationId: cfg-ana-etl
+    version: 3.2.0
+    projectId: prj-analytics
+  - appId: app-ana-warehouse
+    name: analytics_warehouse
+    configurationId: cfg-ana-wh
+    version: 5.0.0
+    projectId: prj-analytics
+
+Components:
+  - componentId: cmp-pay-api
+    name: pay_api_service
+    version: 2.4.1
+    appId: app-pay-api
+  - componentId: cmp-pay-worker
+    name: pay_worker
+    version: 2.4.1
+    appId: app-pay-api
+  - componentId: cmp-pay-ui
+    name: pay_frontend
+    version: 1.9.0
+    appId: app-pay-ui
+  - componentId: cmp-ana-etl
+    name: etl_jobs
+    version: 3.2.0
+    appId: app-ana-etl
+  - componentId: cmp-ana-wh
+    name: warehouse_service
+    version: 5.0.0
+    appId: app-ana-warehouse
+
+Environments:
+  - envId: env-dev
+    projectId: prj-payments
+    name: dev
+    type: Development
+  - envId: env-test
+    projectId: prj-payments
+    name: test
+    type: Test
+  - envId: env-prod
+    projectId: prj-payments
+    name: prod
+    type: Production
+  - envId: env-dev
+    projectId: prj-analytics
+    name: dev
+    type: Development
+  - envId: env-prod
+    projectId: prj-analytics
+    name: prod
+    type: Production
+
+Nodes:
+  - nodeId: node-pay-01
+    hostname: payapp01.acme.local
+    ipAddress: 10.10.10.11
+    type: Physical
+  - nodeId: node-pay-02
+    hostname: payapp02.acme.local
+    ipAddress: 10.10.10.12
+    type: VM
+  - nodeId: node-etl-01
+    hostname: etl01.acme.local
+    ipAddress: 10.20.10.21
+    type: VM
+  - nodeId: node-k8s-ep-1
+    hostname: k8s-prod-api-1.acme.local
+    ipAddress: 10.10.20.10
+    type: VM
+  - nodeId: node-k8s-ep-2
+    hostname: k8s-prod-api-2.acme.local
+    ipAddress: 10.10.20.11
+    type: VM
+  - nodeId: node-grid-mgr-1
+    hostname: grid-mgr-1.acme.local
+    ipAddress: 10.20.20.10
+    type: VM
+  - nodeId: node-grid-wrk-1
+    hostname: grid-wrk-1.acme.local
+    ipAddress: 10.20.20.11
+    type: VM
+  - nodeId: node-grid-wrk-2
+    hostname: grid-wrk-2.acme.local
+    ipAddress: 10.20.20.12
+    type: VM
+
+NodeRoles:
+  - nodeId: node-pay-01
+    roles: [app_server]
+  - nodeId: node-pay-02
+    roles: [app_server]
+  - nodeId: node-etl-01
+    roles: [batch_runner]
+  - nodeId: node-k8s-ep-1
+    roles: [k8s_endpoint]
+  - nodeId: node-k8s-ep-2
+    roles: [k8s_endpoint]
+  - nodeId: node-grid-mgr-1
+    roles: [grid_manager]
+  - nodeId: node-grid-wrk-1
+    roles: [grid_worker]
+  - nodeId: node-grid-wrk-2
+    roles: [grid_worker]
+
+Clusters:
+  - clusterId: cluster-grid-01
+    clusterName: analytics_grid
+    type: Grid
+  - clusterId: cluster-k8s-01
+    clusterName: prod_k8s
+    type: Kubernetes
+
+ClusterRoles:
+  - clusterId: cluster-grid-01
+    roles: [spark_grid]
+  - clusterId: cluster-k8s-01
+    roles: [k8s_prod]
+
+GridMembers:
+  - clusterId: cluster-grid-01
+    managers: [node-grid-mgr-1]
+    workers: [node-grid-wrk-1, node-grid-wrk-2]
+
+ClusterEndpoints:
+  - clusterId: cluster-k8s-01
+    endpointNodeIds: [node-k8s-ep-1, node-k8s-ep-2]
+
+K8sNamespaces:
+  - clusterId: cluster-k8s-01
+    namespaceName: payments
+  - clusterId: cluster-k8s-01
+    namespaceName: analytics
+
+K8sWorkloads:
+  - clusterId: cluster-k8s-01
+    namespaceName: payments
+    kind: Deployment
+    workloadName: pay-api
+  - clusterId: cluster-k8s-01
+    namespaceName: payments
+    kind: Deployment
+    workloadName: pay-worker
+  - clusterId: cluster-k8s-01
+    namespaceName: analytics
+    kind: StatefulSet
+    workloadName: warehouse
+
+K8sServices:
+  - clusterId: cluster-k8s-01
+    namespaceName: payments
+    serviceName: pay-api-svc
+    type: ClusterIP
+    routesToWorkload:
+      kind: Deployment
+      workloadName: pay-api
+  - clusterId: cluster-k8s-01
+    namespaceName: analytics
+    serviceName: warehouse-svc
+    type: ClusterIP
+    routesToWorkload:
+      kind: StatefulSet
+      workloadName: warehouse
+
+K8sPods:
+  - clusterId: cluster-k8s-01
+    namespaceName: payments
+    podNames: [pay-api-abc123, pay-api-def456, pay-worker-aaa111]
+  - clusterId: cluster-k8s-01
+    namespaceName: analytics
+    podNames: [warehouse-0, warehouse-1]
+
+Filers:
+  - filerId: filer-nas-01
+    name: nas01
+    ipAddress: 10.10.30.10
+    type: NAS
+  - filerId: filer-san-01
+    name: san01
+    ipAddress: 10.20.30.10
+    type: SAN
+
+FilerRoles:
+  - filerId: filer-nas-01
+    roles: [shared_storage]
+  - filerId: filer-san-01
+    roles: [block_storage]
+
+Volumes:
+  - volumeId: vol-pay-logs
+    name: pay_logs
+    protocol: NFS
+    filerId: filer-nas-01
+  - volumeId: vol-ana-staging
+    name: ana_staging
+    protocol: NFS
+    filerId: filer-nas-01
+  - volumeId: vol-warehouse
+    name: warehouse_data
+    protocol: iSCSI
+    filerId: filer-san-01
+
+Mounts:
+  - volumeId: vol-pay-logs
+    nodeId: node-pay-01
+    mountPath: /mnt/pay/logs
+    accessMode: rw
+    exportOrShareName: /exports/pay_logs
+    protocolDetails: nfs_v4
+  - volumeId: vol-pay-logs
+    nodeId: node-pay-02
+    mountPath: /mnt/pay/logs
+    accessMode: rw
+    exportOrShareName: /exports/pay_logs
+    protocolDetails: nfs_v4
+  - volumeId: vol-ana-staging
+    nodeId: node-etl-01
+    mountPath: /mnt/ana/staging
+    accessMode: rw
+    exportOrShareName: /exports/ana_staging
+    protocolDetails: nfs_v4
+  - volumeId: vol-warehouse
+    clusterId: cluster-grid-01
+    mountPath: /mnt/warehouse
+    accessMode: rw
+    exportOrShareName: lun_42
+    protocolDetails: iscsi_multipath
+
+Networks:
+  - networkId: net-app
+    name: app_network
+  - networkId: net-data
+    name: data_network
+
+Subnets:
+  - subnetId: sn-app-10
+    networkId: net-app
+    name: app_frontend
+    cidr: 10.10.10.0/24
+    vlan: "110"
+  - subnetId: sn-app-20
+    networkId: net-app
+    name: app_backend
+    cidr: 10.10.20.0/24
+    vlan: "120"
+  - subnetId: sn-data-10
+    networkId: net-data
+    name: data_services
+    cidr: 10.10.30.0/24
+    vlan: "210"
+  - subnetId: sn-data-20
+    networkId: net-data
+    name: analytics_compute
+    cidr: 10.20.20.0/24
+    vlan: "220"
+  - subnetId: sn-data-30
+    networkId: net-data
+    name: storage_backend
+    cidr: 10.20.30.0/24
+    vlan: "230"
+
+SubnetConnections:
+  - entityType: Node
+    entityId: node-pay-01
+    subnetId: sn-app-10
+  - entityType: Node
+    entityId: node-pay-02
+    subnetId: sn-app-10
+  - entityType: Node
+    entityId: node-k8s-ep-1
+    subnetId: sn-app-20
+  - entityType: Node
+    entityId: node-k8s-ep-2
+    subnetId: sn-app-20
+  - entityType: Node
+    entityId: node-etl-01
+    subnetId: sn-data-20
+  - entityType: Node
+    entityId: node-grid-mgr-1
+    subnetId: sn-data-20
+  - entityType: Node
+    entityId: node-grid-wrk-1
+    subnetId: sn-data-20
+  - entityType: Node
+    entityId: node-grid-wrk-2
+    subnetId: sn-data-20
+  - entityType: Cluster
+    entityId: cluster-k8s-01
+    subnetId: sn-app-20
+  - entityType: Cluster
+    entityId: cluster-grid-01
+    subnetId: sn-data-20
+  - entityType: Filer
+    entityId: filer-nas-01
+    subnetId: sn-data-10
+  - entityType: Filer
+    entityId: filer-san-01
+    subnetId: sn-data-30
+
+Deployments:
+  - deploymentId: dep-pay-api-dev
+    componentId: cmp-pay-api
+    projectId: prj-payments
+    envId: env-dev
+    targets:
+      nodes: [node-pay-01]
+  - deploymentId: dep-pay-api-test
+    componentId: cmp-pay-api
+    projectId: prj-payments
+    envId: env-test
+    targets:
+      nodes: [node-pay-02]
+  - deploymentId: dep-pay-api-prod
+    componentId: cmp-pay-api
+    projectId: prj-payments
+    envId: env-prod
+    targets:
+      nodes: [node-pay-02]
+      k8sWorkloads:
+        - clusterId: cluster-k8s-01
+          namespaceName: payments
+          kind: Deployment
+          workloadName: pay-api
+  - deploymentId: dep-pay-worker-prod
+    componentId: cmp-pay-worker
+    projectId: prj-payments
+    envId: env-prod
+    targets:
+      k8sWorkloads:
+        - clusterId: cluster-k8s-01
+          namespaceName: payments
+          kind: Deployment
+          workloadName: pay-worker
+  - deploymentId: dep-pay-ui-prod
+    componentId: cmp-pay-ui
+    projectId: prj-payments
+    envId: env-prod
+    targets:
+      nodes: [node-pay-01]
+  - deploymentId: dep-ana-etl-dev
+    componentId: cmp-ana-etl
+    projectId: prj-analytics
+    envId: env-dev
+    targets:
+      nodes: [node-etl-01]
+  - deploymentId: dep-ana-etl-prod
+    componentId: cmp-ana-etl
+    projectId: prj-analytics
+    envId: env-prod
+    targets:
+      gridClusters: [cluster-grid-01]
+  - deploymentId: dep-ana-wh-prod
+    componentId: cmp-ana-wh
+    projectId: prj-analytics
+    envId: env-prod
+    targets:
+      k8sWorkloads:
+        - clusterId: cluster-k8s-01
+          namespaceName: analytics
+          kind: StatefulSet
+          workloadName: warehouse

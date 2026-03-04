@@ -1,0 +1,30 @@
+# Maven / Java build output
+target/
+out/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+hs_err_pid*
+replay_pid*
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~

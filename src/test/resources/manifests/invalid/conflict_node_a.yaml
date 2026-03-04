@@ -1,0 +1,32 @@
+﻿Manifest:
+  manifestId: bad-a
+  path: bad-a.yaml
+Organizations:
+  - orgId: org-1
+    name: Acme
+Projects: []
+Applications: []
+Components: []
+Environments: []
+Nodes:
+  - nodeId: node-1
+    hostname: app01.local
+    ipAddress: 10.0.0.1
+    type: VM
+NodeRoles: []
+Clusters: []
+ClusterRoles: []
+GridMembers: []
+ClusterEndpoints: []
+K8sNamespaces: []
+K8sWorkloads: []
+K8sServices: []
+K8sPods: []
+Filers: []
+FilerRoles: []
+Volumes: []
+Mounts: []
+Networks: []
+Subnets: []
+SubnetConnections: []
+Deployments: []
