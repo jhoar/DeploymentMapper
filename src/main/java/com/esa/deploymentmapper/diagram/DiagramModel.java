@@ -1,13 +1,16 @@
 package com.esa.deploymentmapper.diagram;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class DiagramModel {
     private final Map<String, NodeDecl> nodes = new LinkedHashMap<>();
     private final List<EdgeDecl> edges = new ArrayList<>();
+    private final Set<EdgeDecl> edgeSet = new LinkedHashSet<>();
     private final Map<String, List<String>> packageMembers = new LinkedHashMap<>();
 
     public Map<String, NodeDecl> nodes() {
@@ -27,7 +30,10 @@ public class DiagramModel {
     }
 
     public void addEdge(String fromAlias, String toAlias, String label, boolean dotted) {
-        edges.add(new EdgeDecl(fromAlias, toAlias, label, dotted));
+        EdgeDecl edge = new EdgeDecl(fromAlias, toAlias, label, dotted);
+        if (edgeSet.add(edge)) {
+            edges.add(edge);
+        }
     }
 
     public void addPackageMember(String packageName, String alias) {
