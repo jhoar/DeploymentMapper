@@ -1,0 +1,72 @@
+name: CI Main
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25 (Zulu)
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "25"
+          cache: maven
+
+      - name: Configure Maven toolchains.xml
+        shell: bash
+        run: |
+          mkdir -p "$HOME/.m2"
+          cat > "$HOME/.m2/toolchains.xml" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <toolchains xmlns="http://maven.apache.org/TOOLCHAINS/1.1.0"
+                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                      xsi:schemaLocation="http://maven.apache.org/TOOLCHAINS/1.1.0 https://maven.apache.org/xsd/toolchains-1.1.0.xsd">
+            <toolchain>
+              <type>jdk</type>
+              <provides>
+                <version>25</version>
+              </provides>
+              <configuration>
+                <jdkHome>${JAVA_HOME}</jdkHome>
+              </configuration>
+            </toolchain>
+          </toolchains>
+          EOF
+
+      - name: Build and verify
+        run: mvn -B clean verify
+
+      - name: Smoke run and capture outputs
+        run: |
+          java -jar target/deployment-mapper-1.0.0-SNAPSHOT.jar --input examples/acme_example_manifest.yaml --output-dir out-ci --clean-db
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-mapper-jar
+          path: target/deployment-mapper-1.0.0-SNAPSHOT.jar
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+          if-no-files-found: warn
+
+      - name: Upload generated diagrams
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-diagrams
+          path: out-ci
+          if-no-files-found: warn
+
