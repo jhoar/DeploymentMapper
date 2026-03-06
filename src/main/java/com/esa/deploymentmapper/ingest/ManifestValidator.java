@@ -63,6 +63,7 @@ public class ManifestValidator {
         }
 
         for (ManifestData.Volume volume : data.volumes()) {
+            required(errors, sourceLabel, "Volumes.filerId", volume.filerId());
             validateEnum(errors, sourceLabel, "Volumes.protocol", volume.protocol(), Set.of("NFS", "SMB", "iSCSI", "S3"));
         }
 
@@ -231,6 +232,21 @@ public class ManifestValidator {
         for (ManifestData.Volume volume : data.volumes()) {
             if (!filerIds.contains(volume.filerId())) {
                 errors.add("Volume " + volume.volumeId() + " references missing filerId " + volume.filerId());
+            }
+            if (isBlank(volume.hostedByNodeId())) {
+                continue;
+            }
+            if (!nodeIds.contains(volume.hostedByNodeId())) {
+                errors.add("Volume " + volume.volumeId() + " references missing hostedByNodeId " + volume.hostedByNodeId());
+                continue;
+            }
+            ManifestData.Node hostNode = nodesById.get(volume.hostedByNodeId());
+            if (hostNode == null) {
+                errors.add("Volume " + volume.volumeId() + " references missing hostedByNodeId " + volume.hostedByNodeId());
+                continue;
+            }
+            if (!"Physical".equals(hostNode.type())) {
+                errors.add("Volume " + volume.volumeId() + " host node must be Physical: " + hostNode.nodeId());
             }
         }
 

@@ -80,7 +80,7 @@ public final class ManifestData {
     public record K8sPods(String clusterId, String namespaceName, List<String> podNames) {}
     public record Filer(String filerId, String name, String ipAddress, String type) {}
     public record FilerRoles(String filerId, List<String> roles) {}
-    public record Volume(String volumeId, String name, String protocol, String filerId) {}
+    public record Volume(String volumeId, String name, String protocol, String filerId, String hostedByNodeId) {}
     public record Mount(String volumeId, String nodeId, String clusterId, String mountPath, String accessMode, String exportOrShareName, String protocolDetails) {}
     public record Network(String networkId, String name) {}
     public record Subnet(String subnetId, String networkId, String name, String cidr, String vlan) {}

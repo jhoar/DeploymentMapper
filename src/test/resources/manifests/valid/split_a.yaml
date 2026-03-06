@@ -64,6 +64,7 @@ Volumes:
     name: vol
     protocol: NFS
     filerId: filer-1
+    hostedByNodeId: node-hv-1
 Mounts:
   - volumeId: vol-1
     nodeId: node-1

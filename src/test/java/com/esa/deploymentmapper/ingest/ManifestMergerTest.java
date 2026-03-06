@@ -87,4 +87,34 @@ class ManifestMergerTest {
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Conflict in Node.hostedByNodeId");
     }
+
+    @Test
+    void merges_missing_volume_hostedByNodeId_from_other_manifest() {
+        ManifestData first = new ManifestData();
+        first.setManifest(new ManifestData.ManifestInfo("m-1", "one.yaml"));
+        first.volumes().add(new ManifestData.Volume("vol-1", "vol", "NFS", "filer-1", ""));
+
+        ManifestData second = new ManifestData();
+        second.setManifest(new ManifestData.ManifestInfo("m-2", "two.yaml"));
+        second.volumes().add(new ManifestData.Volume("vol-1", "vol", "NFS", "filer-1", "node-host-1"));
+
+        ManifestData merged = merger.merge(List.of(first, second));
+        assertThat(merged.volumes()).hasSize(1);
+        assertThat(merged.volumes().get(0).hostedByNodeId()).isEqualTo("node-host-1");
+    }
+
+    @Test
+    void fails_on_conflicting_volume_hostedByNodeId_values() {
+        ManifestData first = new ManifestData();
+        first.setManifest(new ManifestData.ManifestInfo("m-1", "one.yaml"));
+        first.volumes().add(new ManifestData.Volume("vol-1", "vol", "NFS", "filer-1", "node-host-1"));
+
+        ManifestData second = new ManifestData();
+        second.setManifest(new ManifestData.ManifestInfo("m-2", "two.yaml"));
+        second.volumes().add(new ManifestData.Volume("vol-1", "vol", "NFS", "filer-1", "node-host-2"));
+
+        assertThatThrownBy(() -> merger.merge(List.of(first, second)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Conflict in Volume.hostedByNodeId");
+    }
 }

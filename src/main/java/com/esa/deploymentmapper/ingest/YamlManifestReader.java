@@ -239,7 +239,8 @@ public class YamlManifestReader {
                     asString(item.get("volumeId")),
                     asString(item.get("name")),
                     asString(item.get("protocol")),
-                    asString(item.get("filerId"))
+                    asString(item.get("filerId")),
+                    asString(item.get("hostedByNodeId"))
             ));
         }
     }
