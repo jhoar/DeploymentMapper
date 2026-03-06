@@ -163,7 +163,8 @@ public class ManifestMerger {
                                 existing.volumeId(),
                                 coalesce(existing.name(), add.name(), "Volume.name", errors),
                                 coalesce(existing.protocol(), add.protocol(), "Volume.protocol", errors),
-                                coalesce(existing.filerId(), add.filerId(), "Volume.filerId", errors)
+                                coalesce(existing.filerId(), add.filerId(), "Volume.filerId", errors),
+                                coalesce(existing.hostedByNodeId(), add.hostedByNodeId(), "Volume.hostedByNodeId", errors)
                         ));
             }
             for (ManifestData.Network incoming : source.networks()) {

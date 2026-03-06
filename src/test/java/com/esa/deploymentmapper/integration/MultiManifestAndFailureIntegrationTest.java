@@ -27,7 +27,9 @@ class MultiManifestAndFailureIntegrationTest {
 
         assertThat(exitCode).isEqualTo(0);
         assertThat(outputDir.resolve("deployment-map.puml")).exists();
-        assertThat(Files.readString(outputDir.resolve("deployment-map.puml"))).contains("HOSTED_BY");
+        assertThat(Files.readString(outputDir.resolve("deployment-map.puml")))
+                .contains("HOSTED_BY")
+                .contains("node_node_hv_1 --> volume_vol_1 : HOSTS_VOLUME");
     }
 
     @Test

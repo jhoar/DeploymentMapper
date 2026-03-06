@@ -88,6 +88,19 @@ public class DiagramProjectionService {
     }
 
     private void projectStorage(Transaction tx, DiagramModel model) {
+        Result nodeHostedVolumes = tx.execute(
+                "MATCH (n:Node)-[:HOSTS_VOLUME]->(v:Volume) " +
+                        "RETURN n.nodeId AS nodeId, n.hostname AS hostname, v.volumeId AS volumeId, v.name AS volumeName"
+        );
+        while (nodeHostedVolumes.hasNext()) {
+            Map<String, Object> row = nodeHostedVolumes.next();
+            String nodeAlias = alias("node", string(row.get("nodeId")));
+            String volumeAlias = alias("volume", string(row.get("volumeId")));
+            model.addNode(nodeAlias, string(row.get("hostname")) + "\\n(" + string(row.get("nodeId")) + ")", "Node");
+            model.addNode(volumeAlias, string(row.get("volumeName")), "Volume");
+            model.addEdge(nodeAlias, volumeAlias, "HOSTS_VOLUME", false);
+        }
+
         Result nodeMounts = tx.execute(
                 "MATCH (f:Filer)-[:HOSTS_VOLUME]->(v:Volume)<-[m:MOUNTS_VOLUME]-(n:Node) " +
                         "RETURN f.filerId AS filerId, f.name AS filerName, v.volumeId AS volumeId, v.name AS volumeName, n.nodeId AS nodeId, n.hostname AS hostname"

@@ -252,9 +252,20 @@ public class GraphWriter {
     private void writeVolumes(Transaction tx, List<ManifestData.Volume> volumes) {
         for (ManifestData.Volume volume : volumes) {
             execute(tx,
-                    "MERGE (v:Volume {volumeId:$volumeId}) SET v.name=$name, v.protocol=$protocol " +
+                    "MERGE (v:Volume {volumeId:$volumeId}) SET v.name=$name, v.protocol=$protocol, v.hostedByNodeId=$hostedByNodeId " +
                             "WITH v MATCH (f:Filer {filerId:$filerId}) MERGE (f)-[:HOSTS_VOLUME]->(v)",
-                    Map.of("volumeId", volume.volumeId(), "name", volume.name(), "protocol", volume.protocol(), "filerId", volume.filerId()));
+                    Map.of(
+                            "volumeId", volume.volumeId(),
+                            "name", volume.name(),
+                            "protocol", volume.protocol(),
+                            "hostedByNodeId", volume.hostedByNodeId(),
+                            "filerId", volume.filerId()
+                    ));
+            if (volume.hostedByNodeId() != null && !volume.hostedByNodeId().isBlank()) {
+                execute(tx,
+                        "MATCH (n:Node {nodeId:$nodeId}), (v:Volume {volumeId:$volumeId}) MERGE (n)-[:HOSTS_VOLUME]->(v)",
+                        Map.of("nodeId", volume.hostedByNodeId(), "volumeId", volume.volumeId()));
+            }
         }
     }
 
