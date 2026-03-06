@@ -20,6 +20,7 @@
 - Deployment uniqueness checks by `(componentId, projectId, envId)`.
 - Mount uniqueness checks by `(nodeId, volumeId)` and `(clusterId, volumeId)`.
 - Target/reference validation for deployments, roles, mounts, subnet connections, and K8s service routes.
+- VM hosting validation: `Nodes.hostedByNodeId` only on VM nodes, existing host required, host must be `Physical` and have `hypervisor` role.
 
 ## Diagram Policies
 - One merged output diagram per run (`.puml` + `.png`).
@@ -27,3 +28,4 @@
 - Cluster-mounted volumes attached to clusters.
 - Subnet labels are `name | cidr | VLAN <vlan>`.
 - `CONNECTED_TO_SUBNET` is rendered as dotted edges.
+- VM hosting edges are rendered as solid `HOSTED_BY` edges from VM node to hypervisor node.

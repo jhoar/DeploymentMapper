@@ -87,6 +87,10 @@ Environments:
     type: Production
 
 Nodes:
+  - nodeId: node-hv-01
+    hostname: hv01.acme.local
+    ipAddress: 10.10.10.10
+    type: Physical
   - nodeId: node-pay-01
     hostname: payapp01.acme.local
     ipAddress: 10.10.10.11
@@ -95,32 +99,41 @@ Nodes:
     hostname: payapp02.acme.local
     ipAddress: 10.10.10.12
     type: VM
+    hostedByNodeId: node-hv-01
   - nodeId: node-etl-01
     hostname: etl01.acme.local
     ipAddress: 10.20.10.21
     type: VM
+    hostedByNodeId: node-hv-01
   - nodeId: node-k8s-ep-1
     hostname: k8s-prod-api-1.acme.local
     ipAddress: 10.10.20.10
     type: VM
+    hostedByNodeId: node-hv-01
   - nodeId: node-k8s-ep-2
     hostname: k8s-prod-api-2.acme.local
     ipAddress: 10.10.20.11
     type: VM
+    hostedByNodeId: node-hv-01
   - nodeId: node-grid-mgr-1
     hostname: grid-mgr-1.acme.local
     ipAddress: 10.20.20.10
     type: VM
+    hostedByNodeId: node-hv-01
   - nodeId: node-grid-wrk-1
     hostname: grid-wrk-1.acme.local
     ipAddress: 10.20.20.11
     type: VM
+    hostedByNodeId: node-hv-01
   - nodeId: node-grid-wrk-2
     hostname: grid-wrk-2.acme.local
     ipAddress: 10.20.20.12
     type: VM
+    hostedByNodeId: node-hv-01
 
 NodeRoles:
+  - nodeId: node-hv-01
+    roles: [hypervisor]
   - nodeId: node-pay-01
     roles: [app_server]
   - nodeId: node-pay-02
