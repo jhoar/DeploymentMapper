@@ -13,6 +13,7 @@ public class DiagramProjectionService {
         try (Transaction tx = database.beginTx()) {
             projectDeploymentStructure(tx, model);
             projectDeploymentTargets(tx, model);
+            projectNodeHosting(tx, model);
             projectStorage(tx, model);
             projectNetworking(tx, model);
             tx.commit();
@@ -117,6 +118,21 @@ public class DiagramProjectionService {
             model.addNode(clusterAlias, string(row.get("clusterName")) + "\\n(" + string(row.get("clusterId")) + ")", "Cluster");
             model.addEdge(filerAlias, volumeAlias, "HOSTS_VOLUME", false);
             model.addEdge(clusterAlias, volumeAlias, "MOUNTS_VOLUME", false);
+        }
+    }
+
+    private void projectNodeHosting(Transaction tx, DiagramModel model) {
+        Result nodeHosting = tx.execute(
+                "MATCH (vm:Node)-[:HOSTED_BY]->(hv:Node) " +
+                        "RETURN vm.nodeId AS vmNodeId, vm.hostname AS vmHostname, hv.nodeId AS hostNodeId, hv.hostname AS hostHostname"
+        );
+        while (nodeHosting.hasNext()) {
+            Map<String, Object> row = nodeHosting.next();
+            String vmAlias = alias("node", string(row.get("vmNodeId")));
+            String hostAlias = alias("node", string(row.get("hostNodeId")));
+            model.addNode(vmAlias, string(row.get("vmHostname")) + "\\n(" + string(row.get("vmNodeId")) + ")", "Node");
+            model.addNode(hostAlias, string(row.get("hostHostname")) + "\\n(" + string(row.get("hostNodeId")) + ")", "Node");
+            model.addEdge(vmAlias, hostAlias, "HOSTED_BY", false);
         }
     }
 

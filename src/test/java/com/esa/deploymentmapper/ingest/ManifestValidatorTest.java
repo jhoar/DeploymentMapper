@@ -35,6 +35,79 @@ class ManifestValidatorTest {
                 .hasMessageContaining("must have at least one target");
     }
 
+    @Test
+    void rejects_hostedBy_for_non_vm_node() {
+        ManifestData data = minimalValidManifest();
+        data.nodes().clear();
+        data.nodes().add(new ManifestData.Node("node-1", "host1", "10.0.0.1", "Physical", "node-hv-1"));
+
+        assertThatThrownBy(() -> validator.validateSingle(data, "test.yaml"))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("Nodes.hostedByNodeId can only be set for VM nodes");
+    }
+
+    @Test
+    void rejects_self_hosting_node() {
+        ManifestData data = minimalValidManifest();
+        data.nodes().clear();
+        data.nodes().add(new ManifestData.Node("node-1", "host1", "10.0.0.1", "VM", "node-1"));
+
+        assertThatThrownBy(() -> validator.validateSingle(data, "test.yaml"))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("node cannot host itself");
+    }
+
+    @Test
+    void rejects_missing_host_node_in_merged_validation() {
+        ManifestData data = minimalValidManifest();
+        data.nodes().clear();
+        data.nodes().add(new ManifestData.Node("node-1", "vm1", "10.0.0.1", "VM", "node-hv-1"));
+
+        assertThatThrownBy(() -> validator.validateMerged(data))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("references missing hostedByNodeId");
+    }
+
+    @Test
+    void rejects_non_physical_host_node() {
+        ManifestData data = minimalValidManifest();
+        data.nodes().clear();
+        data.nodeRoles().clear();
+        data.nodes().add(new ManifestData.Node("node-1", "vm1", "10.0.0.1", "VM", "node-hv-1"));
+        data.nodes().add(new ManifestData.Node("node-hv-1", "host1", "10.0.0.2", "VM", ""));
+        data.nodeRoles().add(new ManifestData.NodeRoles("node-hv-1", List.of("hypervisor")));
+
+        assertThatThrownBy(() -> validator.validateMerged(data))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("host node must be Physical");
+    }
+
+    @Test
+    void rejects_host_without_hypervisor_role() {
+        ManifestData data = minimalValidManifest();
+        data.nodes().clear();
+        data.nodeRoles().clear();
+        data.nodes().add(new ManifestData.Node("node-1", "vm1", "10.0.0.1", "VM", "node-hv-1"));
+        data.nodes().add(new ManifestData.Node("node-hv-1", "host1", "10.0.0.2", "Physical", ""));
+        data.nodeRoles().add(new ManifestData.NodeRoles("node-hv-1", List.of("app_server")));
+
+        assertThatThrownBy(() -> validator.validateMerged(data))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("host node must have hypervisor role");
+    }
+
+    @Test
+    void accepts_vm_with_valid_hypervisor_host() {
+        ManifestData data = minimalValidManifest();
+        data.nodes().clear();
+        data.nodeRoles().clear();
+        data.nodes().add(new ManifestData.Node("node-1", "vm1", "10.0.0.1", "VM", "node-hv-1"));
+        data.nodes().add(new ManifestData.Node("node-hv-1", "host1", "10.0.0.2", "Physical", ""));
+        data.nodeRoles().add(new ManifestData.NodeRoles("node-hv-1", List.of("hypervisor")));
+
+        validator.validateMerged(data);
+    }
+
     private ManifestData minimalValidManifest() {
         ManifestData data = new ManifestData();
         data.setManifest(new ManifestData.ManifestInfo("m-1", "test.yaml"));
@@ -43,7 +116,7 @@ class ManifestValidatorTest {
         data.applications().add(new ManifestData.Application("app-1", "App", "cfg", "1.0", "prj-1"));
         data.components().add(new ManifestData.Component("cmp-1", "Comp", "1.0", "app-1"));
         data.environments().add(new ManifestData.Environment("env-1", "prj-1", "prod", "Production"));
-        data.nodes().add(new ManifestData.Node("node-1", "host1", "10.0.0.1", "VM"));
+        data.nodes().add(new ManifestData.Node("node-1", "host1", "10.0.0.1", "VM", ""));
         data.clusters().add(new ManifestData.Cluster("cl-1", "grid", "Grid"));
         data.filers().add(new ManifestData.Filer("f-1", "nas", "10.0.1.1", "NAS"));
         data.volumes().add(new ManifestData.Volume("v-1", "vol", "NFS", "f-1"));

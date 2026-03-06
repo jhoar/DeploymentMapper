@@ -126,7 +126,8 @@ public class ManifestMerger {
                                 existing.nodeId(),
                                 coalesce(existing.hostname(), add.hostname(), "Node.hostname", errors),
                                 coalesce(existing.ipAddress(), add.ipAddress(), "Node.ipAddress", errors),
-                                coalesce(existing.type(), add.type(), "Node.type", errors)
+                                coalesce(existing.type(), add.type(), "Node.type", errors),
+                                coalesce(existing.hostedByNodeId(), add.hostedByNodeId(), "Node.hostedByNodeId", errors)
                         ));
             }
 

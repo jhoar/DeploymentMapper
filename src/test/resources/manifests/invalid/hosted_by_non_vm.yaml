@@ -1,6 +1,6 @@
-﻿Manifest:
-  manifestId: split-a
-  path: split_a.yaml
+Manifest:
+  manifestId: bad-hosted-by
+  path: hosted_by_non_vm.yaml
 Organizations:
   - orgId: org-1
     name: Acme
@@ -25,19 +25,19 @@ Environments:
     name: PROD
     type: Production
 Nodes:
-  - nodeId: node-1
-    hostname: app01.local
-    ipAddress: 10.0.0.1
-    type: VM
-    hostedByNodeId: node-hv-1
   - nodeId: node-hv-1
     hostname: hv01.local
     ipAddress: 10.0.0.10
     type: Physical
+    hostedByNodeId: node-hv-2
+  - nodeId: node-hv-2
+    hostname: hv02.local
+    ipAddress: 10.0.0.11
+    type: Physical
 NodeRoles:
-  - nodeId: node-1
-    roles: [app_server]
   - nodeId: node-hv-1
+    roles: [hypervisor]
+  - nodeId: node-hv-2
     roles: [hypervisor]
 Clusters:
   - clusterId: cl-grid
@@ -46,7 +46,7 @@ Clusters:
 ClusterRoles: []
 GridMembers:
   - clusterId: cl-grid
-    managers: [node-1]
+    managers: [node-hv-1]
     workers: []
 ClusterEndpoints: []
 K8sNamespaces: []
@@ -66,7 +66,7 @@ Volumes:
     filerId: filer-1
 Mounts:
   - volumeId: vol-1
-    nodeId: node-1
+    nodeId: node-hv-1
     mountPath: /mnt/vol
     accessMode: rw
     exportOrShareName: /exports/vol
@@ -82,7 +82,7 @@ Subnets:
     vlan: "100"
 SubnetConnections:
   - entityType: Node
-    entityId: node-1
+    entityId: node-hv-1
     subnetId: sn-1
 Deployments:
   - deploymentId: dep-1
@@ -90,4 +90,4 @@ Deployments:
     projectId: prj-1
     envId: env-prod
     targets:
-      nodes: [node-1]
+      nodes: [node-hv-1]

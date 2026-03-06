@@ -119,7 +119,8 @@ public class YamlManifestReader {
                     asString(item.get("nodeId")),
                     asString(item.get("hostname")),
                     asString(item.get("ipAddress")),
-                    asString(item.get("type"))
+                    asString(item.get("type")),
+                    asString(item.get("hostedByNodeId"))
             ));
         }
     }

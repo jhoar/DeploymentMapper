@@ -67,7 +67,7 @@ public final class ManifestData {
     public record Application(String appId, String name, String configurationId, String version, String projectId) {}
     public record Component(String componentId, String name, String version, String appId) {}
     public record Environment(String envId, String projectId, String name, String type) {}
-    public record Node(String nodeId, String hostname, String ipAddress, String type) {}
+    public record Node(String nodeId, String hostname, String ipAddress, String type, String hostedByNodeId) {}
     public record NodeRoles(String nodeId, List<String> roles) {}
     public record Cluster(String clusterId, String clusterName, String type) {}
     public record ClusterRoles(String clusterId, List<String> roles) {}
