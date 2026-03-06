@@ -4,8 +4,10 @@ import com.esa.deploymentmapper.error.ValidationException;
 import com.esa.deploymentmapper.model.ManifestData;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class ManifestValidator {
@@ -43,6 +45,12 @@ public class ManifestValidator {
             required(errors, sourceLabel, "Nodes.hostname", node.hostname());
             required(errors, sourceLabel, "Nodes.type", node.type());
             validateEnum(errors, sourceLabel, "Nodes.type", node.type(), Set.of("Physical", "VM"));
+            if (!isBlank(node.hostedByNodeId()) && !"VM".equals(node.type())) {
+                errors.add(sourceLabel + ": Nodes.hostedByNodeId can only be set for VM nodes: " + node.nodeId());
+            }
+            if (!isBlank(node.hostedByNodeId()) && node.nodeId().equals(node.hostedByNodeId())) {
+                errors.add(sourceLabel + ": node cannot host itself: " + node.nodeId());
+            }
         }
 
         for (ManifestData.Cluster cluster : data.clusters()) {
@@ -95,10 +103,18 @@ public class ManifestValidator {
         Set<String> appIds = new HashSet<>(data.applications().stream().map(ManifestData.Application::appId).toList());
         Set<String> componentIds = new HashSet<>(data.components().stream().map(ManifestData.Component::componentId).toList());
         Set<String> nodeIds = new HashSet<>(data.nodes().stream().map(ManifestData.Node::nodeId).toList());
+        Map<String, ManifestData.Node> nodesById = new HashMap<>();
+        for (ManifestData.Node node : data.nodes()) {
+            nodesById.put(node.nodeId(), node);
+        }
         Set<String> clusterIds = new HashSet<>(data.clusters().stream().map(ManifestData.Cluster::clusterId).toList());
         Set<String> filerIds = new HashSet<>(data.filers().stream().map(ManifestData.Filer::filerId).toList());
         Set<String> volumeIds = new HashSet<>(data.volumes().stream().map(ManifestData.Volume::volumeId).toList());
         Set<String> subnetIds = new HashSet<>(data.subnets().stream().map(ManifestData.Subnet::subnetId).toList());
+        Map<String, Set<String>> nodeRolesByNodeId = new HashMap<>();
+        for (ManifestData.NodeRoles role : data.nodeRoles()) {
+            nodeRolesByNodeId.computeIfAbsent(role.nodeId(), ignored -> new HashSet<>()).addAll(role.roles());
+        }
 
         Set<String> projectEnvKeys = new HashSet<>();
         for (ManifestData.Environment env : data.environments()) {
@@ -126,6 +142,28 @@ public class ManifestValidator {
         for (ManifestData.NodeRoles role : data.nodeRoles()) {
             if (!nodeIds.contains(role.nodeId())) {
                 errors.add("NodeRoles references missing nodeId " + role.nodeId());
+            }
+        }
+
+        for (ManifestData.Node node : data.nodes()) {
+            if (isBlank(node.hostedByNodeId())) {
+                continue;
+            }
+            if (!nodeIds.contains(node.hostedByNodeId())) {
+                errors.add("Node " + node.nodeId() + " references missing hostedByNodeId " + node.hostedByNodeId());
+                continue;
+            }
+            ManifestData.Node hostNode = nodesById.get(node.hostedByNodeId());
+            if (hostNode == null) {
+                errors.add("Node " + node.nodeId() + " references missing hostedByNodeId " + node.hostedByNodeId());
+                continue;
+            }
+            if (!"Physical".equals(hostNode.type())) {
+                errors.add("Node " + node.nodeId() + " host node must be Physical: " + hostNode.nodeId());
+            }
+            Set<String> hostRoles = nodeRolesByNodeId.getOrDefault(hostNode.nodeId(), Set.of());
+            if (!hostRoles.contains("hypervisor")) {
+                errors.add("Node " + node.nodeId() + " host node must have hypervisor role: " + hostNode.nodeId());
             }
         }
 

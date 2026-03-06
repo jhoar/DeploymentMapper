@@ -15,6 +15,7 @@ Nodes:
     hostname: app02.local
     ipAddress: 10.0.0.2
     type: VM
+    hostedByNodeId: node-hv-1
 NodeRoles:
   - nodeId: node-2
     roles: [app_server]

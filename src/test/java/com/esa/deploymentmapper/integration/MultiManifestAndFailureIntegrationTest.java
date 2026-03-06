@@ -27,6 +27,7 @@ class MultiManifestAndFailureIntegrationTest {
 
         assertThat(exitCode).isEqualTo(0);
         assertThat(outputDir.resolve("deployment-map.puml")).exists();
+        assertThat(Files.readString(outputDir.resolve("deployment-map.puml"))).contains("HOSTED_BY");
     }
 
     @Test
@@ -37,6 +38,19 @@ class MultiManifestAndFailureIntegrationTest {
         int exitCode = new CommandLine(new DeploymentMapperCli()).execute(
                 "--input", Path.of("src", "test", "resources", "manifests", "invalid", "conflict_node_a.yaml").toAbsolutePath().toString(),
                 "--input", Path.of("src", "test", "resources", "manifests", "invalid", "conflict_node_b.yaml").toAbsolutePath().toString(),
+                "--output-dir", outputDir.toString()
+        );
+
+        assertThat(exitCode).isEqualTo(1);
+    }
+
+    @Test
+    void fails_fast_on_invalid_hosted_by_relationship() throws Exception {
+        Path tempDir = Files.createTempDirectory("dm-it-bad-host-");
+        Path outputDir = tempDir.resolve("out");
+
+        int exitCode = new CommandLine(new DeploymentMapperCli()).execute(
+                "--input", Path.of("src", "test", "resources", "manifests", "invalid", "hosted_by_non_vm.yaml").toAbsolutePath().toString(),
                 "--output-dir", outputDir.toString()
         );
 

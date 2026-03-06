@@ -18,6 +18,7 @@ public class GraphWriter {
             writeComponents(tx, data.components());
             writeEnvironments(tx, data.environments());
             writeNodes(tx, data.nodes());
+            writeHostedByEdges(tx, data.nodes());
             writeNodeRoles(tx, data.nodeRoles());
             writeClusters(tx, data.clusters());
             writeClusterRoles(tx, data.clusterRoles());
@@ -110,8 +111,25 @@ public class GraphWriter {
     private void writeNodes(Transaction tx, List<ManifestData.Node> nodes) {
         for (ManifestData.Node node : nodes) {
             execute(tx,
-                    "MERGE (n:Node {nodeId:$nodeId}) SET n.hostname=$hostname, n.ipAddress=$ipAddress, n.type=$type",
-                    Map.of("nodeId", node.nodeId(), "hostname", node.hostname(), "ipAddress", node.ipAddress(), "type", node.type()));
+                    "MERGE (n:Node {nodeId:$nodeId}) SET n.hostname=$hostname, n.ipAddress=$ipAddress, n.type=$type, n.hostedByNodeId=$hostedByNodeId",
+                    Map.of(
+                            "nodeId", node.nodeId(),
+                            "hostname", node.hostname(),
+                            "ipAddress", node.ipAddress(),
+                            "type", node.type(),
+                            "hostedByNodeId", node.hostedByNodeId()
+                    ));
+        }
+    }
+
+    private void writeHostedByEdges(Transaction tx, List<ManifestData.Node> nodes) {
+        for (ManifestData.Node node : nodes) {
+            if (node.hostedByNodeId() == null || node.hostedByNodeId().isBlank()) {
+                continue;
+            }
+            execute(tx,
+                    "MATCH (vm:Node {nodeId:$nodeId}), (hv:Node {nodeId:$hostedByNodeId}) MERGE (vm)-[:HOSTED_BY]->(hv)",
+                    Map.of("nodeId", node.nodeId(), "hostedByNodeId", node.hostedByNodeId()));
         }
     }
 

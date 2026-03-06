@@ -76,6 +76,7 @@ Rules:
 - `hostname` *(string, unique)*
 - `ipAddress` *(string; IPv4 not validated)*
 - `type` *(enum: `Physical|VM`)*
+- `hostedByNodeId` *(string, optional; source field used to create `HOSTED_BY` edge)*
 
 **NodeRole**
 - `nodeRoleId` *(string, unique)* = normalize(name)
@@ -188,6 +189,10 @@ Convenience edges for K8s:
 ### Grid cluster structure
 - `(g:Cluster {type:'Grid'})-[:HAS_MANAGER]->(n:Node)`
 - `(g:Cluster {type:'Grid'})-[:HAS_WORKER]->(n:Node)`
+
+### Virtualization topology
+- `(vm:Node {type:'VM'})-[:HOSTED_BY]->(hv:Node {type:'Physical'})`
+- Host node (`hv`) must carry node role `hypervisor`.
 
 ### Kubernetes topology + endpoints
 Endpoint nodes are `Node` objects; a cluster can have multiple:
@@ -336,6 +341,11 @@ Hard errors:
 - same `nodeId` different `hostname` -> error
 - same `hostname` different `nodeId` -> error
 - deployment references hostname not found as `Node` -> error
+- if `hostedByNodeId` is set, source node must be `type=VM`
+- if `hostedByNodeId` is set, source node cannot equal host node
+- `hostedByNodeId` must reference an existing node
+- host node for `HOSTED_BY` must be `type=Physical`
+- host node for `HOSTED_BY` must have node role `hypervisor`
 
 Mount uniqueness (ingestion logic, not constraints):
 - at most one `MOUNTS_VOLUME` per `(Node,Volume)`
