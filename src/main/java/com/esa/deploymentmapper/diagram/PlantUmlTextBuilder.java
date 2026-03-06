@@ -7,6 +7,8 @@ public class PlantUmlTextBuilder {
         sb.append("@startuml\n");
         sb.append("skinparam backgroundColor #FFFFFF\n");
         sb.append("skinparam defaultFontName Courier\n");
+        sb.append("skinparam Padding 24\n");
+        sb.append("scale max 3800 width\n");
         sb.append("hide empty members\n\n");
 
         for (var entry : model.packageMembers().entrySet()) {
